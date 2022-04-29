@@ -37,9 +37,10 @@ imgs2xl imgsdir imglist.xlsx --size 240 --tags EXIF:Model,EXIF:LensModel,EXIF:Da
 # Requirements
 
 - Python >= 3.7
-- openpyxl
-- Pillow
-- PyExifTool
+  - openpyxl
+  - Pillow
+  - PyExifTool
+- [exiftool CLI](https://exiftool.org/)
 
 # Author
 
