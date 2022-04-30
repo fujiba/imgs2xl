@@ -15,6 +15,8 @@ pip install git+https://github.com/fujiba/imgs2xl
 
 # Usage
 
+## CLI
+
 imgs2xl [-h] [--size SIZE] [--tags TAGS] inputdir output
 
 positional arguments
@@ -33,6 +35,24 @@ example
 ```bash
 imgs2xl imgsdir imglist.xlsx --size 240 --tags EXIF:Model,EXIF:LensModel,EXIF:DateTimeOriginal
 ```
+
+## GUI
+
+```bash
+gimgs2xl
+```
+
+![Image of output excel sheet image.](screenshot.png)
+
+| UI Element       | Description                                                          |
+|------------------|----------------------------------------------------------------------|
+| Images path      | Input directory that contain image files.                            |
+| Excel book path  | Output Excel file name.                                              |
+| Thumbsnail size  | Thumnbsnails size.                                                   |
+| Tags             | Famous tags are can select multiple.                                 |
+| Other tags       | Specify a tag that is not in the list above, use comma for separate. |
+| Run!             | Execute an imgs2xl to output Excel book.                             |
+| Exit             | Exit this programm.                                                  |
 
 # Requirements
 
