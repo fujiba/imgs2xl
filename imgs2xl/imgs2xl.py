@@ -53,28 +53,23 @@ def resize_image(imgpath: str, size: int, outdir: str):
     return path
 
 
-def main():
+def imgs2xl(
+    imgspath: str, xlsxpath: str, thumbssize: int, tags: list[str], callback=None
+):
+    """
+    Generate an Excel sheet with thumbnails from an image files.
 
-    parser = argparse.ArgumentParser(
-        description="Generate an Excel sheet with thumbnails from an image files."
-    )
-
-    parser.add_argument("inputdir", help="Input directory that contain image files.")
-    parser.add_argument("output", help="Output Excel file name.")
-    parser.add_argument(
-        "--size", type=int, default=320, help="Thumbnails size.(default 320px)"
-    )
-    parser.add_argument(
-        "--tags",
-        help="Append exif tags. If specify the multiple tags, use commna for separate. The tag names may include group names, asusual in the format `<group>:<tag>`.",
-    )
-
-    args = parser.parse_args()
-
-    tags = []
-    if args.tags is not None:
-        tags = args.tags.split(",")
-
+    Parameters
+    ----------
+    imgspath : str
+        Input directory that contain image files.
+    xlsxpath: str
+       Output Excel file name.
+    thumbssize: int
+       Thumbnails size.
+    tags: list[str]
+        Append exif tags.  The tag names may include group names, asusual in the format `<group>:<tag>`.
+    """
     wb = openpyxl.Workbook()
     ws = wb.worksheets[0]
     ws.title = "image list"
@@ -88,17 +83,20 @@ def main():
         ws.cell(1, i).value = tag
         i += 1
 
-    files = sorted(glob.glob(os.path.join(args.inputdir, "*")))
+    files = sorted(glob.glob(os.path.join(imgspath, "*")))
     tmppath = tempfile.TemporaryDirectory()
 
     row = 2
     max_width = 0
     max_filename = 0
-    for file in files:
+
+    filenum = len(files)
+
+    for n, file in enumerate(files):
         if imghdr.what(file) != None:
             ws.cell(column=1, row=row).value = row - 1
             ws.cell(column=1, row=row).alignment = Alignment(vertical="top")
-            thumb = resize_image(file, args.size, tmppath.name)
+            thumb = resize_image(file, thumbssize, tmppath.name)
             width = attach_image(ws, thumb, 2, row)
             if width > max_width:
                 max_width = width
@@ -114,6 +112,9 @@ def main():
 
             row += 1
 
+        if callback:
+            callback(file, filenum, n + 1)
+
     ws.column_dimensions["B"].width = max_width * 0.13
     ws.column_dimensions["C"].width = (max_filename + 2) * 1.2
 
@@ -127,6 +128,43 @@ def main():
         max_length = min(max_length, 100)
         ws.column_dimensions[colname].width = (max_length + 2) * 1.2
 
-    wb.save(args.output)
+    wb.save(xlsxpath)
 
     tmppath.cleanup()
+
+
+def verbose_callback(filename, total, n):
+    print(f"{filename} ({n}/{total})")
+
+
+def main():
+
+    parser = argparse.ArgumentParser(
+        description="Generate an Excel sheet with thumbnails from an image files."
+    )
+
+    parser.add_argument("inputdir", help="Input directory that contain image files.")
+    parser.add_argument("output", help="Output Excel file name.")
+    parser.add_argument(
+        "--verbose", action="store_true", help="Verbose mode(default False)"
+    )
+    parser.add_argument(
+        "--size", type=int, default=320, help="Thumbnails size.(default 320px)"
+    )
+    parser.add_argument(
+        "--tags",
+        help="Append exif tags. If specify the multiple tags, use commna for separate. The tag names may include group names, asusual in the format `<group>:<tag>`.",
+    )
+
+    args = parser.parse_args()
+
+    tags = []
+    if args.tags is not None:
+        tags = args.tags.split(",")
+
+    callback = verbose_callback if args.verbose else None
+    imgs2xl(args.inputdir, args.output, args.size, tags, callback)
+
+
+if __name__ == "__main__":
+    main()
