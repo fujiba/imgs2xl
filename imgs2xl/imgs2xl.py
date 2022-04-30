@@ -53,7 +53,7 @@ def resize_image(imgpath: str, size: int, outdir: str):
     return path
 
 
-def imgs2xl(
+def run(
     imgspath: str, xlsxpath: str, thumbssize: int, tags: list[str], callback=None
 ):
     """
@@ -163,7 +163,7 @@ def main():
         tags = args.tags.split(",")
 
     callback = verbose_callback if args.verbose else None
-    imgs2xl(args.inputdir, args.output, args.size, tags, callback)
+    run(args.inputdir, args.output, args.size, tags, callback)
 
 
 if __name__ == "__main__":
