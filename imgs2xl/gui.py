@@ -208,7 +208,7 @@ class Application(tk.Frame):
 
             tags += self.othertags_var.get().split(",")
 
-            imgs2xl.imgs2xl(
+            imgs2xl(
                 imgspath=self.imgspath_var.get(),
                 xlsxpath=self.xlsxpath_var.get(),
                 thumbssize=self.thumbssize_var.get(),
