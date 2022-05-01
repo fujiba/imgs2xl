@@ -2,11 +2,13 @@
 # coding: utf-8
 
 import os
+import sys
 import argparse
 import glob
 import imghdr
 import tempfile
 import exiftool
+import input_json
 
 import openpyxl
 from openpyxl.styles import Alignment
@@ -54,7 +56,12 @@ def resize_image(imgpath: str, size: int, outdir: str):
 
 
 def run(
-    imgspath: str, xlsxpath: str, thumbssize: int, tags: list[str], callback=None
+    imgspath: str,
+    xlsxpath: str,
+    thumbssize: int,
+    tags: list[str],
+    recursive: bool,
+    callback=None,
 ):
     """
     Generate an Excel sheet with thumbnails from an image files.
@@ -67,9 +74,20 @@ def run(
        Output Excel file name.
     thumbssize: int
        Thumbnails size.
+    recursive: bool
+        Recursively search for files.
     tags: list[str]
         Append exif tags.  The tag names may include group names, asusual in the format `<group>:<tag>`.
+    callback: function
+        The callback function that called when processed per file.
+        ```
+        def verbose_callback(filename, total, n):
+            filename: processed file name.
+            total: total files num.
+            n: current file num.
+        ```
     """
+
     wb = openpyxl.Workbook()
     ws = wb.worksheets[0]
     ws.title = "image list"
@@ -83,7 +101,7 @@ def run(
         ws.cell(1, i).value = tag
         i += 1
 
-    files = sorted(glob.glob(os.path.join(imgspath, "*")))
+    files = sorted(glob.glob(os.path.join(imgspath, "**"), recursive=recursive))
     tmppath = tempfile.TemporaryDirectory()
 
     row = 2
@@ -93,6 +111,8 @@ def run(
     filenum = len(files)
 
     for n, file in enumerate(files):
+        if os.path.isdir(file):
+            continue
         if imghdr.what(file) != None:
             ws.cell(column=1, row=row).value = row - 1
             ws.cell(column=1, row=row).alignment = Alignment(vertical="top")
@@ -128,9 +148,9 @@ def run(
         max_length = min(max_length, 100)
         ws.column_dimensions[colname].width = (max_length + 2) * 1.2
 
+    tmppath.cleanup()
     wb.save(xlsxpath)
 
-    tmppath.cleanup()
 
 
 def verbose_callback(filename, total, n):
@@ -143,13 +163,22 @@ def main():
         description="Generate an Excel sheet with thumbnails from an image files."
     )
 
-    parser.add_argument("inputdir", help="Input directory that contain image files.")
-    parser.add_argument("output", help="Output Excel file name.")
+    parser.add_argument(
+        "inputdir", nargs="?", help="Input directory that contain image files."
+    )
+    parser.add_argument("output", nargs="?", help="Output Excel file name.")
+    parser.add_argument(
+        "--recursive", action="store_true", help="Recursively search for files."
+    )
     parser.add_argument(
         "--verbose", action="store_true", help="Verbose mode(default False)"
     )
     parser.add_argument(
         "--size", type=int, default=320, help="Thumbnails size.(default 320px)"
+    )
+    parser.add_argument("--input-json", type=str, help="Use parameters json file.")
+    parser.add_argument(
+        "--generate-skeleton", type=str, help="Create parameters skeleton json file."
     )
     parser.add_argument(
         "--tags",
@@ -158,12 +187,39 @@ def main():
 
     args = parser.parse_args()
 
-    tags = []
-    if args.tags is not None:
-        tags = args.tags.split(",")
+    if args.generate_skeleton is not None:
+        input_json.output_json(args.generate_skeleton, "", "", False, 320, [])
+        exit(0)
+
+    if args.input_json is not None:
+        _ = input_json.input_json(args.input_json)
+        imgspath = _["inputdir"]
+        xlsxpath = _["output"]
+        recursive = _["recursive"]
+        thumbssize = _["size"]
+        tags = _["tags"]
+    else:
+        imgspath = args.inputdir
+        xlsxpath = args.output
+        recursive = args.recursive
+        thumbssize = args.size
+        tags = args.tags
+        tags = []
+        if args.tags is not None:
+            tags = args.tags.split(",")
+
+    if imgspath is None or len(imgspath) <= 0:
+        parser.print_usage()
+        sys.stderr.write("inputdir is not specified.\n")
+        exit(1)
+
+    if xlsxpath is None or len(xlsxpath) <= 0:
+        parser.print_usage()
+        sys.stderr.write("output is not specified.\n")
+        exit(1)
 
     callback = verbose_callback if args.verbose else None
-    run(args.inputdir, args.output, args.size, tags, callback)
+    run(imgspath, xlsxpath, thumbssize, tags, recursive, callback)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ with open("requirements.txt") as requirements_file:
 
 setuptools.setup(
     name="imgs2xl",
-    version="0.1.0",
+    version="0.2.0",
     author="T.Fujiba",
     description="Output an Excel sheet with thumbnails from an image files.",
     long_description=long_description,

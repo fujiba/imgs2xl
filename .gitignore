@@ -131,3 +131,4 @@ dmypy.json
 # VSCode
 .vscode/settings.json
 .vscode/launch.json
+hoge.json

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 import os
+import sys
+import subprocess
 import tkinter as tk
 import imgs2xl
 from tkinter import ttk
@@ -92,63 +94,76 @@ class Application(tk.Frame):
         self.xlsxpath_var = tk.StringVar()
         self.thumbssize_var = tk.IntVar(value=320)
         self.othertags_var = tk.StringVar()
+        self.recursive_var = tk.BooleanVar()
 
+        row = 0
         imgspath_label = tk.Label(parent, text="Images path:")
-        imgspath_label.grid(row=0, column=0, sticky=tk.E)
+        imgspath_label.grid(row=row, column=0, sticky=tk.E)
         self.imgspath_entry = tk.Entry(parent, textvariable=self.imgspath_var, width=24)
-        self.imgspath_entry.grid(row=0, column=1)
+        self.imgspath_entry.grid(row=row, column=1, sticky=tk.W)
         self.imgspath_browse = tk.Button(
             parent, text="Browse...", command=self.on_imgspath_browse
         )
-        self.imgspath_browse.grid(row=0, column=2)
+        self.imgspath_browse.grid(row=row, column=2)
 
+        row += 1
+        self.recursive_chkbox = tk.Checkbutton(
+            parent, variable=self.recursive_var, text="Recursive"
+        )
+        self.recursive_chkbox.grid(row=row, column=1, sticky=tk.W)
+
+        row += 1
         xlsxpath_label = tk.Label(parent, text="Excel book path:")
-        xlsxpath_label.grid(row=1, column=0, sticky=tk.E)
+        xlsxpath_label.grid(row=row, column=0, sticky=tk.E)
         self.xlsxpath_entry = tk.Entry(parent, textvariable=self.xlsxpath_var, width=24)
-        self.xlsxpath_entry.grid(row=1, column=1)
+        self.xlsxpath_entry.grid(row=row, column=1, sticky=tk.W)
         self.xlsxpath_browse = tk.Button(
             parent, text="Browse...", command=self.on_xlsxpath_browse
         )
-        self.xlsxpath_browse.grid(row=1, column=2)
+        self.xlsxpath_browse.grid(row=row, column=2)
 
+        row += 1
         thumbssize_label = tk.Label(parent, text="Thumbsnail size:")
-        thumbssize_label.grid(row=2, column=0, sticky=tk.E)
+        thumbssize_label.grid(row=row, column=0, sticky=tk.E)
 
         self.thumbssize_entry = tk.Entry(
             parent, textvariable=self.thumbssize_var, width=4, justify=tk.RIGHT
         )
-        self.thumbssize_entry.grid(row=2, column=1, sticky=tk.E)
+        self.thumbssize_entry.grid(row=row, column=1, sticky=tk.E)
 
         thumbssizesuffix_label = tk.Label(parent, text="px")
-        thumbssizesuffix_label.grid(row=2, column=2, sticky=tk.W)
+        thumbssizesuffix_label.grid(row=row, column=2, sticky=tk.W)
 
+        row += 1
         tagslist_label = tk.Label(parent, text="Tags:")
-        tagslist_label.grid(row=3, column=0, sticky=tk.NE)
+        tagslist_label.grid(row=row, column=0, sticky=tk.NE)
         self.tags_list = tk.Listbox(
             parent,
             listvariable=tk.StringVar(value=Application.TAGNAMES),
             selectmode="multiple",
             width=0,
         )
-        self.tags_list.grid(row=3, column=1, sticky=tk.NE + tk.NW + tk.S)
+        self.tags_list.grid(row=row, column=1, sticky=tk.NE + tk.NW + tk.S)
         scrollbar = tk.Scrollbar(
             parent, orient=tk.VERTICAL, command=self.tags_list.yview
         )
         self.tags_list["yscrollcommand"] = scrollbar.set
-        scrollbar.grid(row=3, column=2, sticky=(tk.NW + tk.S))
+        scrollbar.grid(row=row, column=2, sticky=(tk.NW + tk.S))
 
+        row += 1
         othertags_label = tk.Label(parent, text="Other tags\n(Comma separated):")
-        othertags_label.grid(row=4, column=0, sticky=tk.E)
+        othertags_label.grid(row=row, column=0, sticky=tk.E)
         self.othertags_entry = tk.Entry(
             parent, textvariable=self.othertags_var, width=40
         )
-        self.othertags_entry.grid(row=4, column=1, columnspan=2)
+        self.othertags_entry.grid(row=row, column=1, columnspan=2, sticky=tk.W)
 
+        row += 1
         self.run_button = tk.Button(parent, text="Run!", command=self.on_run)
-        self.run_button.grid(row=6, column=0)
+        self.run_button.grid(row=row, column=0)
 
         self.close_button = tk.Button(parent, text="Exit", command=self.on_close)
-        self.close_button.grid(row=6, column=2)
+        self.close_button.grid(row=row, column=2)
 
     def on_xlsxpath_browse(self):
         path = filedialog.asksaveasfilename(
@@ -163,6 +178,14 @@ class Application(tk.Frame):
             parent=self.master, initialdir=os.path.expanduser("~")
         )
         self.imgspath_var.set(path)
+
+    def launch_application(self, filepath):
+        if sys.platform.startswith("darwin"):
+            subprocess.call(("open", filepath))
+        elif os.name == "nt":
+            os.startfile(filepath)
+        elif os.name == "posix":
+            subprocess.call(("xdg-open", filepath))
 
     @contextmanager
     def on_busy_task(self):
@@ -193,6 +216,9 @@ class Application(tk.Frame):
 
         finally:
             self.progress.destroy()
+            if tk.messagebox.askyesno("imgs2xl", "Do you want to open Excel book file?", parent=self.master):
+                self.launch_application(self.xlsxpath_var.get())
+
 
     def progress_callback(self, filename, total, n):
         self.progress.update()
@@ -213,6 +239,7 @@ class Application(tk.Frame):
                 xlsxpath=self.xlsxpath_var.get(),
                 thumbssize=self.thumbssize_var.get(),
                 tags=tags,
+                recursive=self.recursive_var.get(),
                 callback=self.progress_callback,
             )
 
