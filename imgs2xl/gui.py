@@ -216,9 +216,10 @@ class Application(tk.Frame):
 
         finally:
             self.progress.destroy()
-            if tk.messagebox.askyesno("imgs2xl", "Do you want to open Excel book file?", parent=self.master):
+            if tk.messagebox.askyesno(
+                "imgs2xl", "Do you want to open Excel book file?", parent=self.master
+            ):
                 self.launch_application(self.xlsxpath_var.get())
-
 
     def progress_callback(self, filename, total, n):
         self.progress.update()

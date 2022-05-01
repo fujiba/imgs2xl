@@ -34,7 +34,7 @@ optional arguments:
 |---------------------------------------|-------------------------------------------|
 | -h, --help                            | show this help message and exit           |
 | --size SIZE                           | Thumbnails size.(default 320px)           |
-| --tags TAGS                           | Append exif tags. If specify the multiple tags, use commna for separate. The tag names may include group names, asusual in the format `<group>:<tag>`. |
+| --tags TAGS                           | Append exif tags. If specify the multiple tags, use commna for separate. |
 | --input-json INPUT_JSON               | Use parameters json file.                 |
 | --generate-skeleton GENERATE_SKELETON | Create parameters skeleton json file.     |
 | --recursive                           | Recursively search for files.             |
@@ -43,7 +43,7 @@ optional arguments:
 example
 
 ```bash
-imgs2xl imgsdir imglist.xlsx --size 240 --tags EXIF:Model,EXIF:LensModel,EXIF:DateTimeOriginal
+imgs2xl imgsdir imglist.xlsx --size 240 --tags Model,LensModel,DateTimeOriginal
 ```
 
 ### Input JSON
@@ -56,7 +56,7 @@ The imgs2xl is using parameters as JSON file. JSON file sample is following.
   "output": "/Users/fujiba/tmp/hoge.xlsx",
   "recursive": false,
   "size": 320,
-  "tags": ["EXIF:Make", "EXIF:Model"]
+  "tags": ["Make", "Model"]
 }
 ```
 
@@ -86,8 +86,6 @@ gimgs2xl
 - Python >= 3.7
   - openpyxl
   - Pillow
-  - PyExifTool
-- [exiftool CLI](https://exiftool.org/)
 
 GUI application is using `tkinter`. When happen a following error, you need install `python-tk`.
 
@@ -120,3 +118,283 @@ sudo apt install python-tk
 # License
 
 MIT License
+
+# Appendix
+
+## Exif tag names
+
+```
+InteropIndex
+ProcessingSoftware
+NewSubfileType
+SubfileType
+ImageWidth
+ImageLength
+BitsPerSample
+Compression
+PhotometricInterpretation
+Thresholding
+CellWidth
+CellLength
+FillOrder
+DocumentName
+ImageDescription
+Make
+Model
+StripOffsets
+Orientation
+SamplesPerPixel
+RowsPerStrip
+StripByteCounts
+MinSampleValue
+MaxSampleValue
+XResolution
+YResolution
+PlanarConfiguration
+PageName
+FreeOffsets
+FreeByteCounts
+GrayResponseUnit
+GrayResponseCurve
+T4Options
+T6Options
+ResolutionUnit
+PageNumber
+TransferFunction
+Software
+DateTime
+Artist
+HostComputer
+Predictor
+WhitePoint
+PrimaryChromaticities
+ColorMap
+HalftoneHints
+TileWidth
+TileLength
+TileOffsets
+TileByteCounts
+SubIFDs
+InkSet
+InkNames
+NumberOfInks
+DotRange
+TargetPrinter
+ExtraSamples
+SampleFormat
+SMinSampleValue
+SMaxSampleValue
+TransferRange
+ClipPath
+XClipPathUnits
+YClipPathUnits
+Indexed
+JPEGTables
+OPIProxy
+JPEGProc
+JpegIFOffset
+JpegIFByteCount
+JpegRestartInterval
+JpegLosslessPredictors
+JpegPointTransforms
+JpegQTables
+JpegDCTables
+JpegACTables
+YCbCrCoefficients
+YCbCrSubSampling
+YCbCrPositioning
+ReferenceBlackWhite
+XMLPacket
+RelatedImageFileFormat
+RelatedImageWidth
+RelatedImageLength
+Rating
+RatingPercent
+ImageID
+CFARepeatPatternDim
+CFAPattern
+BatteryLevel
+Copyright
+ExposureTime
+FNumber
+IPTCNAA
+ImageResources
+ExifOffset
+InterColorProfile
+ExposureProgram
+SpectralSensitivity
+GPSInfo
+ISOSpeedRatings
+OECF
+Interlace
+TimeZoneOffset
+SelfTimerMode
+SensitivityType
+StandardOutputSensitivity
+RecommendedExposureIndex
+ISOSpeed
+ISOSpeedLatitudeyyy
+ISOSpeedLatitudezzz
+ExifVersion
+DateTimeOriginal
+DateTimeDigitized
+OffsetTime
+OffsetTimeOriginal
+OffsetTimeDigitized
+ComponentsConfiguration
+CompressedBitsPerPixel
+ShutterSpeedValue
+ApertureValue
+BrightnessValue
+ExposureBiasValue
+MaxApertureValue
+SubjectDistance
+MeteringMode
+LightSource
+Flash
+FocalLength
+FlashEnergy
+SpatialFrequencyResponse
+Noise
+ImageNumber
+SecurityClassification
+ImageHistory
+SubjectLocation
+ExposureIndex
+TIFF/EPStandardID
+MakerNote
+UserComment
+SubsecTime
+SubsecTimeOriginal
+SubsecTimeDigitized
+AmbientTemperature
+Humidity
+Pressure
+WaterDepth
+Acceleration
+CameraElevationAngle
+XPTitle
+XPComment
+XPAuthor
+XPKeywords
+XPSubject
+FlashPixVersion
+ColorSpace
+ExifImageWidth
+ExifImageHeight
+RelatedSoundFile
+ExifInteroperabilityOffset
+FlashEnergy
+SpatialFrequencyResponse
+FocalPlaneXResolution
+FocalPlaneYResolution
+FocalPlaneResolutionUnit
+SubjectLocation
+ExposureIndex
+SensingMethod
+FileSource
+SceneType
+CFAPattern
+CustomRendered
+ExposureMode
+WhiteBalance
+DigitalZoomRatio
+FocalLengthIn35mmFilm
+SceneCaptureType
+GainControl
+Contrast
+Saturation
+Sharpness
+DeviceSettingDescription
+SubjectDistanceRange
+ImageUniqueID
+CameraOwnerName
+BodySerialNumber
+LensSpecification
+LensMake
+LensModel
+LensSerialNumber
+CompositeImage
+CompositeImageCount
+CompositeImageExposureTimes
+Gamma
+PrintImageMatching
+DNGVersion
+DNGBackwardVersion
+UniqueCameraModel
+LocalizedCameraModel
+CFAPlaneColor
+CFALayout
+LinearizationTable
+BlackLevelRepeatDim
+BlackLevel
+BlackLevelDeltaH
+BlackLevelDeltaV
+WhiteLevel
+DefaultScale
+DefaultCropOrigin
+DefaultCropSize
+ColorMatrix1
+ColorMatrix2
+CameraCalibration1
+CameraCalibration2
+ReductionMatrix1
+ReductionMatrix2
+AnalogBalance
+AsShotNeutral
+AsShotWhiteXY
+BaselineExposure
+BaselineNoise
+BaselineSharpness
+BayerGreenSplit
+LinearResponseLimit
+CameraSerialNumber
+LensInfo
+ChromaBlurRadius
+AntiAliasStrength
+ShadowScale
+DNGPrivateData
+MakerNoteSafety
+CalibrationIlluminant1
+CalibrationIlluminant2
+BestQualityScale
+RawDataUniqueID
+OriginalRawFileName
+OriginalRawFileData
+ActiveArea
+MaskedAreas
+AsShotICCProfile
+AsShotPreProfileMatrix
+CurrentICCProfile
+CurrentPreProfileMatrix
+ColorimetricReference
+CameraCalibrationSignature
+ProfileCalibrationSignature
+AsShotProfileName
+NoiseReductionApplied
+ProfileName
+ProfileHueSatMapDims
+ProfileHueSatMapData1
+ProfileHueSatMapData2
+ProfileToneCurve
+ProfileEmbedPolicy
+ProfileCopyright
+ForwardMatrix1
+ForwardMatrix2
+PreviewApplicationName
+PreviewApplicationVersion
+PreviewSettingsName
+PreviewSettingsDigest
+PreviewColorSpace
+PreviewDateTime
+RawImageDigest
+OriginalRawFileDigest
+SubTileBlockSize
+RowInterleaveFactor
+ProfileLookTableDims
+ProfileLookTableData
+OpcodeList1
+OpcodeList2
+OpcodeList3
+NoiseProfile
+```

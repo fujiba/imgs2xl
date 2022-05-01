@@ -1,4 +1,0 @@
-openpyxl==3.0.7
-Pillow==9.1.0
-PyExifTool==0.4.11
-setuptools==60.10.0
