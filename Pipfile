@@ -6,6 +6,8 @@ name = "pypi"
 [packages]
 pillow = "*"
 openpyxl = "*"
+filetype = "*"
+defusedxml = "*"
 
 [dev-packages]
 

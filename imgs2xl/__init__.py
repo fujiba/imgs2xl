@@ -1,3 +1,3 @@
 __version__ = '0.2.0'
 
-from .imgs2xl import *
+from .imgs2xl import *  # noqa

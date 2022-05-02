@@ -33,7 +33,7 @@ def main():
     )
     parser.add_argument(
         "--tags",
-        help="Append exif tags. If specify the multiple tags, use commna for separate.",
+        help="Append exif tags. If specify the multiple tags, use commna for separate.The tag names may include group names, asusual in the format `<group>:<tag>`.",
     )
 
     args = parser.parse_args()

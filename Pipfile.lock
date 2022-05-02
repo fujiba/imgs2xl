@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "fc81f882aff319966711dd75757dd7b8f42e4c2c6bd573bfdb018a1f461ea8ca"
+            "sha256": "9fec8312dfafe68fc19b31f6eca4caf251c88f6314ffb84cc69b7f90c99825ae"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -16,6 +16,14 @@
         ]
     },
     "default": {
+        "defusedxml": {
+            "hashes": [
+                "sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69",
+                "sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61"
+            ],
+            "index": "pypi",
+            "version": "==0.7.1"
+        },
         "et-xmlfile": {
             "hashes": [
                 "sha256:8eb9e2bc2f8c97e37a2dc85a09ecdcdec9d8a396530a6d5a33b30b9a92da0c5c",
@@ -23,6 +31,14 @@
             ],
             "markers": "python_version >= '3.6'",
             "version": "==1.1.0"
+        },
+        "filetype": {
+            "hashes": [
+                "sha256:6a104762fe93d755c962aa96cb3d930a48f91a0761047126c5eead2153e33b03",
+                "sha256:8f5d2d5ae7fec00c71dadfe8a747c2d6da91d77f9b4e550bbdb0881f63a07e43"
+            ],
+            "index": "pypi",
+            "version": "==1.0.13"
         },
         "openpyxl": {
             "hashes": [
@@ -75,28 +91,6 @@
             ],
             "index": "pypi",
             "version": "==9.1.0"
-        },
-        "pyexiv2": {
-            "hashes": [
-                "sha256:1197e1b4837676a98f1df2bd1c297b3040baa88a0caee569cfe48b808d585d9d",
-                "sha256:1ffa7c599a121671ce3984f86f20fa4a30fbc37713cfbca00ba450017a4a475e",
-                "sha256:3800979355e7c289d34dee04bdce03a0cdb2d1c929052a541201730dd1ff49a3",
-                "sha256:44af25456aeff9d48a1c382ea9c6ed8229baa9450619cc5e288203aa5c717403",
-                "sha256:5a7613e776a8af28106ae092a84b9e0c7da915511f4891c27ec7a670842d6468",
-                "sha256:5fddf62391c20a57664e2c3d927e60ef984c65c1437767fa5135f1b9efd14400",
-                "sha256:7fab947b7b6a34947573db845b2d5637e214df6413e05f0c6eb016c768537787",
-                "sha256:85cefeb70012dd2ba19da0aa0bb571aad03146af3cae06d7ea681555d562547d",
-                "sha256:9d98964a24cee893383f547982a759641e0e8a3f3500f88abaf2eb15bf33f5c6",
-                "sha256:a86e68de0706da6402609bc8be1c643344efe8807c85ecb6779abc219afa1e5e",
-                "sha256:af469af90115cb4223f896144f5b5d7aad7388a6382f7c16468a6f6da32782ec",
-                "sha256:c4ff751432f8fef3f4f2eb3617ded7fc6e3cdd280ed1f69fa1d4b24f03a46115",
-                "sha256:cdab46bc5fa148244d3158f3777cb78970cb043bc9b69eba78953bf1d558b1e3",
-                "sha256:d4298ae5285f20190f64ebed8be805f86ab88fb332af7f356f8cc3fd16207b2e",
-                "sha256:d685427dd2d67bb5bebe68fca2e3e06287b3b39bded4a130e1f30cc04b2a59ea",
-                "sha256:fa42317be8500599b81dda983a0527ab9895b890a924f6d593b63e177c087f64"
-            ],
-            "index": "pypi",
-            "version": "==2.5.0"
         }
     },
     "develop": {}

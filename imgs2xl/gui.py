@@ -180,6 +180,9 @@ class Application(tk.Frame):
         self.imgspath_var.set(path)
 
     def launch_application(self, filepath):
+        filepath = os.path.expanduser(filepath)
+        filepath = os.path.expandvars(filepath)
+
         if sys.platform.startswith("darwin"):
             subprocess.call(("open", filepath))
         elif os.name == "nt":
@@ -190,9 +193,16 @@ class Application(tk.Frame):
     @contextmanager
     def on_busy_task(self):
         try:
+            geo = self.master.geometry().replace('x', '+').split('+')
+            pw = int(geo[0])
+            ph = int(geo[1])
+            px = int(geo[2])
+            py = int(geo[3])
+            x = int((pw - 300) / 2 + px)
+            y = int((ph - 100) / 2 + py)
             self.progress = tk.Toplevel(self.master)
             self.progress.title("Executing...")
-            self.progress.geometry("300x100")
+            self.progress.geometry(f"300x100+{x}+{y}")
             tk.Label(self.progress, text="Processed file").pack()
 
             self.progress_var = tk.DoubleVar()

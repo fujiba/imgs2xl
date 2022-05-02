@@ -9,6 +9,7 @@ import tempfile
 import json
 import math
 import traceback
+from .metadata import get_metadata
 
 import openpyxl
 import PIL
@@ -81,60 +82,6 @@ def _attach_image(ws, img: str, col: int, row: int):
     return pilImage.width
 
 
-def _get_aperture_value(rational):
-    if not isinstance(rational, PIL.TiffImagePlugin.IFDRational):
-        return str(rational)
-
-    val = round(math.sqrt(pow(2, rational.numerator / rational.denominator)), 2)
-    return f"f{val}"
-
-
-def _get_shutter_speed_value(rational):
-    if not isinstance(rational, PIL.TiffImagePlugin.IFDRational):
-        return str(rational)
-
-    val = round(pow(2, rational.numerator / rational.denominator))
-    return f"1/{val}" if rational.numerator > 0 else str(val)
-
-
-def _get_exposure_program(val):
-    if type(val) is not int:
-        return str(val)
-
-    _EXPOSURE_PROGRAM = [
-        "N/A",
-        "Manual",
-        "Normal program",
-        "Aperture priority",
-        "Shutter priority",
-        "Creative program",
-        "Action program ",
-        "Portrait mode",
-        "Landscape mode",
-    ]
-    return (
-        _EXPOSURE_PROGRAM[val]
-        if val >= 0 and val < len(_EXPOSURE_PROGRAM)
-        else "Uknown"
-    )
-
-
-def _get_tagvalue(key, tag):
-    if tag is None:
-        return ""
-
-    if key == "ShutterSpeedValue":
-        value = _get_shutter_speed_value(tag)
-    elif key == "ApertureValue":
-        value = _get_aperture_value(tag)
-    elif key == "ExposureProgram":
-        value = _get_exposure_program(tag)
-    else:
-        value = str(tag)
-
-    return value
-
-
 def _add_tags(ws, tags, exif: dict, col: int, row: int):
     if len(tags) <= 0:
         return
@@ -142,22 +89,19 @@ def _add_tags(ws, tags, exif: dict, col: int, row: int):
     offset = 0
     for tag in tags:
         cell = ws.cell(row=row, column=col + offset)
-        cell.value = _get_tagvalue(tag, exif.get(tag, ""))
+        cell.value = str(exif.get(tag, ""))
         cell.alignment = Alignment(wrapText=True, vertical="top")
         offset += 1
 
 
-def _retrieve_thumbs_and_exif(imgpath: str, size: int, outdir: str):
+def _retrieve_thumbs(imgpath: str, size: int, outdir: str):
     pilImage = Image.open(imgpath)
-    rawmeta = pilImage._getexif()
     pilImage.thumbnail((size, size))
 
     path = os.path.join(outdir, os.path.basename(imgpath))
     pilImage.save(path)
 
-    exif = {ExifTags.TAGS.get(key, key): rawmeta[key] for key in rawmeta}
-
-    return path, exif
+    return path
 
 
 def run(
@@ -192,6 +136,11 @@ def run(
             n: current file num.
         ```
     """
+    imgspath = os.path.expanduser(imgspath)
+    imgspath = os.path.expandvars(imgspath)
+
+    xlsxpath = os.path.expanduser(xlsxpath)
+    xlsxpath = os.path.expandvars(xlsxpath)
 
     wb = openpyxl.Workbook()
     ws = wb.worksheets[0]
@@ -222,7 +171,8 @@ def run(
             if imghdr.what(file) != None:
                 ws.cell(column=1, row=row).value = row - 1
                 ws.cell(column=1, row=row).alignment = Alignment(vertical="top")
-                thumb, exif = _retrieve_thumbs_and_exif(file, thumbssize, tmppath.name)
+                thumb = _retrieve_thumbs(file, thumbssize, tmppath.name)
+                metadata = get_metadata(file)
                 width = _attach_image(ws, thumb, 2, row)
                 if width > max_width:
                     max_width = width
@@ -234,7 +184,7 @@ def run(
                 if len(fn) > max_filename:
                     max_filename = len(fn)
 
-                _add_tags(ws, tags, exif, 4, row)
+                _add_tags(ws, tags, metadata, 4, row)
 
                 row += 1
 
