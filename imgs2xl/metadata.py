@@ -71,7 +71,7 @@ def _get_aperture_value(rational):
     if not isinstance(rational, TiffImagePlugin.IFDRational):
         return str(rational)
 
-    val = round(math.sqrt(pow(2, rational.numerator / rational.denominator)), 2)
+    val = round(math.sqrt(pow(2, rational)), 2)
     return f"f{val}"
 
 
@@ -79,7 +79,7 @@ def _get_shutter_speed_value(rational):
     if not isinstance(rational, TiffImagePlugin.IFDRational):
         return str(rational)
 
-    val = round(pow(2, rational.numerator / rational.denominator))
+    val = round(pow(2, abs(rational)))
     return f"1/{val}" if rational.numerator > 0 else str(val)
 
 
@@ -106,7 +106,7 @@ def _get_exposure_program(val):
 
 
 def _get_file_source(val):
-    return _EXIF_FILESOURCE[val[0]] if val[0] in _EXIF_FILESOURCE else "unkonwn"
+    return _EXIF_FILESOURCE[val[0]] if val[0] in _EXIF_FILESOURCE else "Unkonwn"
 
 
 def _tostring_xmpval(xmpval: dict):
