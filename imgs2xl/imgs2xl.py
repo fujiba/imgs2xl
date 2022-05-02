@@ -7,14 +7,12 @@ import glob
 import imghdr
 import tempfile
 import json
-import math
 import traceback
 from .metadata import get_metadata
 
 import openpyxl
-import PIL
 from openpyxl.styles import Alignment
-from PIL import Image, ExifTags
+from PIL import Image
 
 
 def output_json(
@@ -149,6 +147,8 @@ def run(
     ws.cell(1, 1).value = "No."
     ws.cell(1, 2).value = "Thumbnail"
     ws.cell(1, 3).value = "Filename"
+
+    ws.freeze_panes = "C2"
 
     i = 4
     for tag in tags:
