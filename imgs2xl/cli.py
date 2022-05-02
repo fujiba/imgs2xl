@@ -50,14 +50,17 @@ def main():
         thumbssize = _["size"]
         tags = _["tags"]
     else:
-        imgspath = args.inputdir
-        xlsxpath = args.output
         recursive = args.recursive
         thumbssize = args.size
         tags = args.tags
         tags = []
         if args.tags is not None:
             tags = args.tags.split(",")
+
+    if args.inputdir:
+        imgspath = args.inputdir
+    if args.output:
+        xlsxpath = args.output
 
     if imgspath is None or len(imgspath) <= 0:
         parser.print_usage()
