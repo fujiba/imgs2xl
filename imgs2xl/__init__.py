@@ -1,1 +1,3 @@
-from imgs2xl.imgs2xl import run
+__version__ = '0.2.0'
+
+from .imgs2xl import *  # noqa
