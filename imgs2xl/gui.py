@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 # coding: utf-8
 import os
-import tkinter as tk
+import sys
+import subprocess
 import imgs2xl
-from tkinter import ttk
-from tkinter import filedialog
+import tkinter as tk
+from tkinter import ttk, filedialog
 from threading import Thread
 from contextlib import contextmanager
 
 
 class Application(tk.Frame):
-    TAGNAMES = [
+    _TAGNAMES = [
         "File:FileName",
         "File:Directory",
         "File:FileSize",
@@ -82,73 +83,158 @@ class Application(tk.Frame):
         master.minsize(400, 200)
         master.title("gimgs2xl")
 
+        menu = self.create_menu(master)
+        master.config(menu=menu)
+        master.rowconfigure(0, weight=1)
+        master.columnconfigure(0, weight=1)
+        master.grid()
+
         frame = ttk.Frame(master, padding=10)
         frame.pack()
-
         self.create_widgets(frame)
+
+    def create_menu(self, parent):
+        menubar = tk.Menu(parent)
+
+        filemenu = tk.Menu(menubar, tearoff=0)
+        filemenu.add_command(label="Load param...", command=self.on_load_param)
+        filemenu.add_command(label="Save param...", command=self.on_save_param)
+        filemenu.add_separator()
+        filemenu.add_command(label="Exit", command=self.on_close)
+
+        # helpmenu = tk.Menu(menubar, tearoff=0)
+        # helpmenu.add_command(label='Help', command=baz)
+
+        menubar.add_cascade(label="File", menu=filemenu)
+        # menubar.add_cascade(label='Help', menu=helpmenu)
+
+        return menubar
 
     def create_widgets(self, parent):
         self.imgspath_var = tk.StringVar()
         self.xlsxpath_var = tk.StringVar()
         self.thumbssize_var = tk.IntVar(value=320)
         self.othertags_var = tk.StringVar()
+        self.recursive_var = tk.BooleanVar()
 
+        row = 0
         imgspath_label = tk.Label(parent, text="Images path:")
-        imgspath_label.grid(row=0, column=0, sticky=tk.E)
+        imgspath_label.grid(row=row, column=0, sticky=tk.E)
         self.imgspath_entry = tk.Entry(parent, textvariable=self.imgspath_var, width=24)
-        self.imgspath_entry.grid(row=0, column=1)
+        self.imgspath_entry.grid(row=row, column=1, sticky=tk.W)
         self.imgspath_browse = tk.Button(
             parent, text="Browse...", command=self.on_imgspath_browse
         )
-        self.imgspath_browse.grid(row=0, column=2)
+        self.imgspath_browse.grid(row=row, column=2)
 
+        row += 1
+        self.recursive_chkbox = tk.Checkbutton(
+            parent, variable=self.recursive_var, text="Recursive"
+        )
+        self.recursive_chkbox.grid(row=row, column=1, sticky=tk.W)
+
+        row += 1
         xlsxpath_label = tk.Label(parent, text="Excel book path:")
-        xlsxpath_label.grid(row=1, column=0, sticky=tk.E)
+        xlsxpath_label.grid(row=row, column=0, sticky=tk.E)
         self.xlsxpath_entry = tk.Entry(parent, textvariable=self.xlsxpath_var, width=24)
-        self.xlsxpath_entry.grid(row=1, column=1)
+        self.xlsxpath_entry.grid(row=row, column=1, sticky=tk.W)
         self.xlsxpath_browse = tk.Button(
             parent, text="Browse...", command=self.on_xlsxpath_browse
         )
-        self.xlsxpath_browse.grid(row=1, column=2)
+        self.xlsxpath_browse.grid(row=row, column=2)
 
+        row += 1
         thumbssize_label = tk.Label(parent, text="Thumbsnail size:")
-        thumbssize_label.grid(row=2, column=0, sticky=tk.E)
+        thumbssize_label.grid(row=row, column=0, sticky=tk.E)
 
         self.thumbssize_entry = tk.Entry(
             parent, textvariable=self.thumbssize_var, width=4, justify=tk.RIGHT
         )
-        self.thumbssize_entry.grid(row=2, column=1, sticky=tk.E)
+        self.thumbssize_entry.grid(row=row, column=1, sticky=tk.E)
 
         thumbssizesuffix_label = tk.Label(parent, text="px")
-        thumbssizesuffix_label.grid(row=2, column=2, sticky=tk.W)
+        thumbssizesuffix_label.grid(row=row, column=2, sticky=tk.W)
 
+        row += 1
         tagslist_label = tk.Label(parent, text="Tags:")
-        tagslist_label.grid(row=3, column=0, sticky=tk.NE)
+        tagslist_label.grid(row=row, column=0, sticky=tk.NE)
         self.tags_list = tk.Listbox(
             parent,
-            listvariable=tk.StringVar(value=Application.TAGNAMES),
+            listvariable=tk.StringVar(value=Application._TAGNAMES),
             selectmode="multiple",
             width=0,
         )
-        self.tags_list.grid(row=3, column=1, sticky=tk.NE + tk.NW + tk.S)
+        self.tags_list.grid(row=row, column=1, sticky=tk.NE + tk.NW + tk.S)
         scrollbar = tk.Scrollbar(
             parent, orient=tk.VERTICAL, command=self.tags_list.yview
         )
         self.tags_list["yscrollcommand"] = scrollbar.set
-        scrollbar.grid(row=3, column=2, sticky=(tk.NW + tk.S))
+        scrollbar.grid(row=row, column=2, sticky=(tk.NW + tk.S))
 
+        row += 1
         othertags_label = tk.Label(parent, text="Other tags\n(Comma separated):")
-        othertags_label.grid(row=4, column=0, sticky=tk.E)
+        othertags_label.grid(row=row, column=0, sticky=tk.E)
         self.othertags_entry = tk.Entry(
             parent, textvariable=self.othertags_var, width=40
         )
-        self.othertags_entry.grid(row=4, column=1, columnspan=2)
+        self.othertags_entry.grid(row=row, column=1, columnspan=2, sticky=tk.W)
 
+        row += 1
         self.run_button = tk.Button(parent, text="Run!", command=self.on_run)
-        self.run_button.grid(row=6, column=0)
+        self.run_button.grid(row=row, column=0)
 
         self.close_button = tk.Button(parent, text="Exit", command=self.on_close)
-        self.close_button.grid(row=6, column=2)
+        self.close_button.grid(row=row, column=2)
+
+    def on_load_param(self):
+        path = filedialog.askopenfilename(
+            parent=self.master,
+            filetypes=[("JSON", ".json")],
+            initialdir=os.path.expanduser("~"),
+        )
+
+        if not path:
+            return
+
+        try:
+            _ = imgs2xl.input_json(path)
+            self.imgspath_var.set(_["inputdir"])
+            self.xlsxpath_var.set(_["output"])
+            self.recursive_var.set(_["recursive"])
+            self.thumbssize_var.set(_["size"])
+            othertags = []
+            for tag in _["tags"]:
+                index = self._TAGNAMES.index(tag) if tag in self._TAGNAMES else -1
+                if index >= 0:
+                    self.tags_list.select_set(index)
+                else:
+                    othertags.append(tag)
+
+            if len(othertags) > 0:
+                self.othertags_var.set(",".join(othertags))
+        except Exception as e:
+            tk.messagebox.showerror(
+                "imgs2xl", "Failed to load JSON file.", parent=self.master
+            )
+
+    def on_save_param(self):
+        path = filedialog.asksaveasfilename(
+            parent=self.master,
+            filetypes=[("JSON", ".json")],
+            initialdir=os.path.expanduser("~"),
+        )
+
+        if len(path) <= 0:
+            return
+
+        imgs2xl.output_json(
+            path,
+            self.imgspath_var.get(),
+            self.xlsxpath_var.get(),
+            self.recursive_var.get(),
+            self.thumbssize_var.get(),
+            self.make_tags_string(),
+        )
 
     def on_xlsxpath_browse(self):
         path = filedialog.asksaveasfilename(
@@ -164,12 +250,30 @@ class Application(tk.Frame):
         )
         self.imgspath_var.set(path)
 
+    def launch_application(self, filepath):
+        filepath = os.path.expanduser(filepath)
+        filepath = os.path.expandvars(filepath)
+
+        if sys.platform.startswith("darwin"):
+            subprocess.call(("open", filepath))
+        elif os.name == "nt":
+            os.startfile(filepath)
+        elif os.name == "posix":
+            subprocess.call(("xdg-open", filepath))
+
     @contextmanager
     def on_busy_task(self):
         try:
+            geo = self.master.geometry().replace("x", "+").split("+")
+            pw = int(geo[0])
+            ph = int(geo[1])
+            px = int(geo[2])
+            py = int(geo[3])
+            x = int((pw - 300) / 2 + px)
+            y = int((ph - 100) / 2 + py)
             self.progress = tk.Toplevel(self.master)
             self.progress.title("Executing...")
-            self.progress.geometry("300x100")
+            self.progress.geometry(f"300x100+{x}+{y}")
             tk.Label(self.progress, text="Processed file").pack()
 
             self.progress_var = tk.DoubleVar()
@@ -193,26 +297,37 @@ class Application(tk.Frame):
 
         finally:
             self.progress.destroy()
+            if tk.messagebox.askyesno(
+                "imgs2xl", "Do you want to open Excel book file?", parent=self.master
+            ):
+                self.launch_application(self.xlsxpath_var.get())
 
     def progress_callback(self, filename, total, n):
         self.progress.update()
         self.progress_var.set(n / total)
         self.progress_filename_var.set(os.path.basename(filename))
 
+    def make_tags_string(self):
+        tags = []
+        selected = self.tags_list.curselection()
+        for index in selected:
+            tags.append(Application._TAGNAMES[index])
+
+        if len(self.othertags_var.get()) > 0:
+            tags += self.othertags_var.get().split(",")
+
+        return tags
+
     def execute_imgs2xl(self):
         with self.on_busy_task():
-            tags = []
-            selected = self.tags_list.curselection()
-            for index in selected:
-                tags.append(Application.TAGNAMES[index])
-
-            tags += self.othertags_var.get().split(",")
+            tags = self.make_tags_string()
 
             imgs2xl.run(
                 imgspath=self.imgspath_var.get(),
                 xlsxpath=self.xlsxpath_var.get(),
                 thumbssize=self.thumbssize_var.get(),
                 tags=tags,
+                recursive=self.recursive_var.get(),
                 callback=self.progress_callback,
             )
 

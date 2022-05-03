@@ -2,18 +2,75 @@
 # coding: utf-8
 
 import os
-import argparse
+import sys
 import glob
 import imghdr
 import tempfile
-import exiftool
+import json
+import traceback
+from .metadata import get_metadata
 
 import openpyxl
 from openpyxl.styles import Alignment
 from PIL import Image
 
 
-def attach_image(ws, img: str, col: int, row: int):
+def output_json(
+    jsonpath: str,
+    imgsdir: str,
+    xlsxpath: str,
+    recursive: bool,
+    thumbssize: int,
+    tags: list[str],
+):
+    """
+    Generate a JSON file for CLI input arguments.
+
+    Parameters
+    ----------
+    jsonpath : str
+        Output JSON file path.
+    imgspath : str
+        Input directory that contain image files.
+    xlsxpath: str
+       Output Excel file name.
+    thumbssize: int
+       Thumbnails size.
+    recursive: bool
+        Recursively search for files.
+    tags: list[str]
+        Append exif tags.  The tag names may include group names, asusual in the format `<group>:<tag>`.
+    """
+
+    with open(jsonpath, mode="w", encoding="utf-8") as file:
+        json.dump(
+            {
+                "inputdir": imgsdir,
+                "output": xlsxpath,
+                "recursive": recursive,
+                "size": thumbssize,
+                "tags": tags,
+            },
+            file,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+
+def input_json(jsonpath: str):
+    """
+    Load CLI arguments from JSON file.
+
+    Parameters
+    ----------
+    jsonpath : str
+        Input JSON file path.
+    """
+    with open(jsonpath, mode="r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def _attach_image(ws, img: str, col: int, row: int):
     pilImage = Image.open(img)
     ws.row_dimensions[row].height = pilImage.height * 0.75
     wsImg = openpyxl.drawing.image.Image(img)
@@ -23,17 +80,9 @@ def attach_image(ws, img: str, col: int, row: int):
     return pilImage.width
 
 
-def get_exif(file):
-    with exiftool.ExifTool() as et:
-        metadata = et.get_metadata(file)
-        return metadata
-
-
-def add_tags(ws, tags, file: str, col: int, row: int):
+def _add_tags(ws, tags, exif: dict, col: int, row: int):
     if len(tags) <= 0:
         return
-
-    exif = get_exif(file)
 
     offset = 0
     for tag in tags:
@@ -43,7 +92,7 @@ def add_tags(ws, tags, file: str, col: int, row: int):
         offset += 1
 
 
-def resize_image(imgpath: str, size: int, outdir: str):
+def _retrieve_thumbs(imgpath: str, size: int, outdir: str):
     pilImage = Image.open(imgpath)
     pilImage.thumbnail((size, size))
 
@@ -54,7 +103,12 @@ def resize_image(imgpath: str, size: int, outdir: str):
 
 
 def run(
-    imgspath: str, xlsxpath: str, thumbssize: int, tags: list[str], callback=None
+    imgspath: str,
+    xlsxpath: str,
+    thumbssize: int,
+    tags: list[str],
+    recursive: bool,
+    callback=None,
 ):
     """
     Generate an Excel sheet with thumbnails from an image files.
@@ -67,9 +121,25 @@ def run(
        Output Excel file name.
     thumbssize: int
        Thumbnails size.
+    recursive: bool
+        Recursively search for files.
     tags: list[str]
         Append exif tags.  The tag names may include group names, asusual in the format `<group>:<tag>`.
+    callback: function
+        The callback function that called when processed per file.
+        ```
+        def verbose_callback(filename, total, n):
+            filename: processed file name.
+            total: total files num.
+            n: current file num.
+        ```
     """
+    imgspath = os.path.expanduser(imgspath)
+    imgspath = os.path.expandvars(imgspath)
+
+    xlsxpath = os.path.expanduser(xlsxpath)
+    xlsxpath = os.path.expandvars(xlsxpath)
+
     wb = openpyxl.Workbook()
     ws = wb.worksheets[0]
     ws.title = "image list"
@@ -78,93 +148,64 @@ def run(
     ws.cell(1, 2).value = "Thumbnail"
     ws.cell(1, 3).value = "Filename"
 
+    ws.freeze_panes = "C2"
+
     i = 4
     for tag in tags:
         ws.cell(1, i).value = tag
         i += 1
 
-    files = sorted(glob.glob(os.path.join(imgspath, "*")))
+    files = sorted(glob.glob(os.path.join(imgspath, "**"), recursive=recursive))
     tmppath = tempfile.TemporaryDirectory()
 
-    row = 2
-    max_width = 0
-    max_filename = 0
+    try:
+        row = 2
+        max_width = 0
+        max_filename = 0
 
-    filenum = len(files)
+        filenum = len(files)
 
-    for n, file in enumerate(files):
-        if imghdr.what(file) != None:
-            ws.cell(column=1, row=row).value = row - 1
-            ws.cell(column=1, row=row).alignment = Alignment(vertical="top")
-            thumb = resize_image(file, thumbssize, tmppath.name)
-            width = attach_image(ws, thumb, 2, row)
-            if width > max_width:
-                max_width = width
-            fn = os.path.basename(file)
-            cell = ws.cell(column=3, row=row)
-            cell.value = fn
-            cell.alignment = Alignment(wrapText=True, vertical="top")
+        for n, file in enumerate(files):
+            if os.path.isdir(file):
+                continue
+            if imghdr.what(file) != None:
+                ws.cell(column=1, row=row).value = row - 1
+                ws.cell(column=1, row=row).alignment = Alignment(vertical="top")
+                thumb = _retrieve_thumbs(file, thumbssize, tmppath.name)
+                metadata = get_metadata(file)
+                width = _attach_image(ws, thumb, 2, row)
+                if width > max_width:
+                    max_width = width
+                fn = os.path.basename(file)
+                cell = ws.cell(column=3, row=row)
+                cell.value = fn
+                cell.alignment = Alignment(wrapText=True, vertical="top")
 
-            if len(fn) > max_filename:
-                max_filename = len(fn)
+                if len(fn) > max_filename:
+                    max_filename = len(fn)
 
-            add_tags(ws, tags, file, 4, row)
+                _add_tags(ws, tags, metadata, 4, row)
 
-            row += 1
+                row += 1
 
-        if callback:
-            callback(file, filenum, n + 1)
+            if callback:
+                callback(file, filenum, n + 1)
 
-    ws.column_dimensions["B"].width = max_width * 0.13
-    ws.column_dimensions["C"].width = (max_filename + 2) * 1.2
+        ws.column_dimensions["B"].width = max_width * 0.13
+        ws.column_dimensions["C"].width = (max_filename + 2) * 1.2
 
-    for n in range(len(tags) + 1):
-        colname = openpyxl.utils.get_column_letter(n + 3)
-        max_length = 0
-        for cell in ws[colname]:
-            if len(str(cell.value)) > max_length:
-                max_length = len(str(cell.value))
+        for n in range(len(tags) + 1):
+            colname = openpyxl.utils.get_column_letter(n + 3)
+            max_length = 0
+            for cell in ws[colname]:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
 
-        max_length = min(max_length, 100)
-        ws.column_dimensions[colname].width = (max_length + 2) * 1.2
+            max_length = min(max_length, 100)
+            ws.column_dimensions[colname].width = (max_length + 2) * 1.2
 
-    wb.save(xlsxpath)
-
-    tmppath.cleanup()
-
-
-def verbose_callback(filename, total, n):
-    print(f"{filename} ({n}/{total})")
-
-
-def main():
-
-    parser = argparse.ArgumentParser(
-        description="Generate an Excel sheet with thumbnails from an image files."
-    )
-
-    parser.add_argument("inputdir", help="Input directory that contain image files.")
-    parser.add_argument("output", help="Output Excel file name.")
-    parser.add_argument(
-        "--verbose", action="store_true", help="Verbose mode(default False)"
-    )
-    parser.add_argument(
-        "--size", type=int, default=320, help="Thumbnails size.(default 320px)"
-    )
-    parser.add_argument(
-        "--tags",
-        help="Append exif tags. If specify the multiple tags, use commna for separate. The tag names may include group names, asusual in the format `<group>:<tag>`.",
-    )
-
-    args = parser.parse_args()
-
-    tags = []
-    if args.tags is not None:
-        tags = args.tags.split(",")
-
-    callback = verbose_callback if args.verbose else None
-    run(args.inputdir, args.output, args.size, tags, callback)
-
-
-if __name__ == "__main__":
-    main()
+        wb.save(xlsxpath)
+    except Exception as e:
+        sys.stderr.write(traceback.format_exc())
+    finally:
+        tmppath.cleanup()
