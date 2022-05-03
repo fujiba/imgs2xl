@@ -3,16 +3,15 @@
 import os
 import sys
 import subprocess
-import tkinter as tk
 import imgs2xl
-from tkinter import ttk
-from tkinter import filedialog
+import tkinter as tk
+from tkinter import ttk, filedialog
 from threading import Thread
 from contextlib import contextmanager
 
 
 class Application(tk.Frame):
-    TAGNAMES = [
+    _TAGNAMES = [
         "File:FileName",
         "File:Directory",
         "File:FileSize",
@@ -84,10 +83,32 @@ class Application(tk.Frame):
         master.minsize(400, 200)
         master.title("gimgs2xl")
 
+        menu = self.create_menu(master)
+        master.config(menu=menu)
+        master.rowconfigure(0, weight=1)
+        master.columnconfigure(0, weight=1)
+        master.grid()
+
         frame = ttk.Frame(master, padding=10)
         frame.pack()
-
         self.create_widgets(frame)
+
+    def create_menu(self, parent):
+        menubar = tk.Menu(parent)
+
+        filemenu = tk.Menu(menubar, tearoff=0)
+        filemenu.add_command(label="Load param...", command=self.on_load_param)
+        filemenu.add_command(label="Save param...", command=self.on_save_param)
+        filemenu.add_separator()
+        filemenu.add_command(label="Exit", command=self.on_close)
+
+        # helpmenu = tk.Menu(menubar, tearoff=0)
+        # helpmenu.add_command(label='Help', command=baz)
+
+        menubar.add_cascade(label="File", menu=filemenu)
+        # menubar.add_cascade(label='Help', menu=helpmenu)
+
+        return menubar
 
     def create_widgets(self, parent):
         self.imgspath_var = tk.StringVar()
@@ -139,7 +160,7 @@ class Application(tk.Frame):
         tagslist_label.grid(row=row, column=0, sticky=tk.NE)
         self.tags_list = tk.Listbox(
             parent,
-            listvariable=tk.StringVar(value=Application.TAGNAMES),
+            listvariable=tk.StringVar(value=Application._TAGNAMES),
             selectmode="multiple",
             width=0,
         )
@@ -164,6 +185,56 @@ class Application(tk.Frame):
 
         self.close_button = tk.Button(parent, text="Exit", command=self.on_close)
         self.close_button.grid(row=row, column=2)
+
+    def on_load_param(self):
+        path = filedialog.askopenfilename(
+            parent=self.master,
+            filetypes=[("JSON", ".json")],
+            initialdir=os.path.expanduser("~"),
+        )
+
+        if not path:
+            return
+
+        try:
+            _ = imgs2xl.input_json(path)
+            self.imgspath_var.set(_["inputdir"])
+            self.xlsxpath_var.set(_["output"])
+            self.recursive_var.set(_["recursive"])
+            self.thumbssize_var.set(_["size"])
+            othertags = []
+            for tag in _["tags"]:
+                index = self._TAGNAMES.index(tag) if tag in self._TAGNAMES else -1
+                if index >= 0:
+                    self.tags_list.select_set(index)
+                else:
+                    othertags.append(tag)
+
+            if len(othertags) > 0:
+                self.othertags_var.set(",".join(othertags))
+        except Exception as e:
+            tk.messagebox.showerror(
+                "imgs2xl", "Failed to load JSON file.", parent=self.master
+            )
+
+    def on_save_param(self):
+        path = filedialog.asksaveasfilename(
+            parent=self.master,
+            filetypes=[("JSON", ".json")],
+            initialdir=os.path.expanduser("~"),
+        )
+
+        if len(path) <= 0:
+            return
+
+        imgs2xl.output_json(
+            path,
+            self.imgspath_var.get(),
+            self.xlsxpath_var.get(),
+            self.recursive_var.get(),
+            self.thumbssize_var.get(),
+            self.make_tags_string(),
+        )
 
     def on_xlsxpath_browse(self):
         path = filedialog.asksaveasfilename(
@@ -193,7 +264,7 @@ class Application(tk.Frame):
     @contextmanager
     def on_busy_task(self):
         try:
-            geo = self.master.geometry().replace('x', '+').split('+')
+            geo = self.master.geometry().replace("x", "+").split("+")
             pw = int(geo[0])
             ph = int(geo[1])
             px = int(geo[2])
@@ -236,14 +307,20 @@ class Application(tk.Frame):
         self.progress_var.set(n / total)
         self.progress_filename_var.set(os.path.basename(filename))
 
+    def make_tags_string(self):
+        tags = []
+        selected = self.tags_list.curselection()
+        for index in selected:
+            tags.append(Application._TAGNAMES[index])
+
+        if len(self.othertags_var.get()) > 0:
+            tags += self.othertags_var.get().split(",")
+
+        return tags
+
     def execute_imgs2xl(self):
         with self.on_busy_task():
-            tags = []
-            selected = self.tags_list.curselection()
-            for index in selected:
-                tags.append(Application.TAGNAMES[index])
-
-            tags += self.othertags_var.get().split(",")
+            tags = self.make_tags_string()
 
             imgs2xl.run(
                 imgspath=self.imgspath_var.get(),
@@ -257,7 +334,7 @@ class Application(tk.Frame):
     def on_run(self):
         if len(self.imgspath_var.get()) <= 0:
             tk.messagebox.showerror(
-                "imgs2xl", "Images path is empty!", parent=self.master
+                "imgs2xl", "Images path is empty!", parent=self.mastïr
             )
             return
         if len(self.xlsxpath_var.get()) <= 0:

@@ -81,6 +81,12 @@ gimgs2xl
 | Run!             | Execute an imgs2xl to output Excel book.                             |
 | Exit             | Exit this programm.                                                  |
 
+| Menu Item        | Description                                                          |
+|------------------|----------------------------------------------------------------------|
+| Load param...    | Load parameters from JSON.                                           |
+| Save param...    | Save parameters to JSON.                                             |
+| Exit             | Exit this programm.                                                  |
+
 # Requirements
 
 - Python >= 3.7
@@ -129,6 +135,7 @@ MIT License
 |----------|
 |File:Filename|
 |File:Directory|
+|File:FileSize|
 |File:FileModifyDate|
 |File:FileAccessDate|
 |File:FileType|
