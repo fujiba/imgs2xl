@@ -176,9 +176,10 @@ def get_metadata(path: str):
     rawmeta = pilImage._getexif()
 
     # Generic file informations.
-    metadata["File:Filename"] = os.path.basename(path)
+    metadata["File:FileName"] = os.path.basename(path)
     metadata["File:Directory"] = os.path.dirname(path)
     stat = os.stat(path)
+    metadata["File:FileSize"] = f"{os.path.getsize(path)}"
     metadata["File:FileModifyDate"] = datetime.datetime.fromtimestamp(
         stat.st_mtime
     ).strftime("%Y/%m/%d %H:%M:%S")
