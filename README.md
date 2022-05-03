@@ -87,6 +87,10 @@ gimgs2xl
 | Save param...    | Save parameters to JSON.                                             |
 | Exit             | Exit this programm.                                                  |
 
+See following youtube contents for using gimgs2xl.
+
+[![](https://img.youtube.com/vi/XBRdQukC33M/0.jpg)](https://www.youtube.com/watch?v=XBRdQukC33M)
+
 # Requirements
 
 - Python >= 3.7

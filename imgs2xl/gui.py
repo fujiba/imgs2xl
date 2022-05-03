@@ -334,7 +334,7 @@ class Application(tk.Frame):
     def on_run(self):
         if len(self.imgspath_var.get()) <= 0:
             tk.messagebox.showerror(
-                "imgs2xl", "Images path is empty!", parent=self.mastïr
+                "imgs2xl", "Images path is empty!", parent=self.master
             )
             return
         if len(self.xlsxpath_var.get()) <= 0:
