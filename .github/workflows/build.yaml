@@ -35,4 +35,4 @@ jobs:
         pip install nuitka
         
     - name: Build with nuitka
-      run: python -m nuitka --assume-yes-for-downloads
+      run: python -m nuitka --assume-yes-for-downloads imgs2xl/gui.py
