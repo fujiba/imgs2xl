@@ -15,10 +15,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python 3.9
+    - name: Set up Python 3.7
       uses: actions/setup-python@v3
       with:
-        python-version: "3.9"
+        python-version: "3.7"
     - name: install pipenv
       run: |
         python -m pip install --upgrade pip
@@ -35,4 +35,4 @@ jobs:
         pip install nuitka
         
     - name: Build with nuitka
-      run: python -m nuitka --assume-yes-for-downloads
+      run: python -m nuitka --assume-yes-for-downloads imgs2xl/gui.py
