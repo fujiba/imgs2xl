@@ -35,4 +35,4 @@ jobs:
         pip install nuitka
         
     - name: Build with nuitka
-      run: python -m nuitka --assume-yes-for-downloads imgs2xl/gui.py
+      run: python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=tk-inter --enable-plugin=numpy imgs2xl/gui.py
