@@ -19,6 +19,8 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: "3.7"
+    - name: inastall tcl-tk
+      run: brew install tcl-tk 
     - name: install pipenv
       run: |
         python -m pip install --upgrade pip
