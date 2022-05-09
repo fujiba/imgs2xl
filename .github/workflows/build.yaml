@@ -44,7 +44,7 @@ jobs:
         
     - name: Build with nuitka
       run: |
-        python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=tk-inter --enable-plugin=numpy imgs2xl/gui.py
+        python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=tk-inter --enable-plugin=numpy --macos-create-app-bundle imgs2xl/gui.py
         tar cvfz gui.dist.tgz gui.dist/*
         
     - name: save dist
