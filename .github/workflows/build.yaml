@@ -47,7 +47,7 @@ jobs:
         python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=tk-inter --enable-plugin=numpy imgs2xl/gui.py
         
     - name: save dist
-        uses: actions/upload-artifact@v2
-        with:
-          name: dist
-          path: ./gui.dist
+      uses: actions/upload-artifact@v2
+      with:
+        name: dist
+        path: ./gui.dist
