@@ -45,9 +45,10 @@ jobs:
     - name: Build with nuitka
       run: |
         python -m nuitka --assume-yes-for-downloads --standalone --enable-plugin=tk-inter --enable-plugin=numpy imgs2xl/gui.py
+        tar cvfz gui.dist.tgz gui.dist/*
         
     - name: save dist
       uses: actions/upload-artifact@v2
       with:
-        name: dist
-        path: ./gui.dist
+        name: gui.dist.tgz
+        path: ./gui.dist.tgz
