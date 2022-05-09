@@ -25,6 +25,8 @@ jobs:
           echo "PATH=/usr/local/Cellar/tcl-tk/$version/bin:$PATH" > $GITHUB_ENV
           echo "LDFLAGS=-L/usr/local/Cellar/tcl-tk/$version/lib" >> $GITHUB_ENV
           echo "CPPFLAGS=-I/usr/local/Cellar/tcl-tk/$version/include" >> $GITHUB_ENV
+          echo "TCL_LIBRARY=/usr/local/Cellar/tcl-tk/$version' >> $GITHUB_ENV
+          echo "TK_LIBRARY=/usr/local/Cellar/tcl-tk/$version' >> $GITHUB_ENV
     - name: install pipenv
       run: |
         python -m pip install --upgrade pip
