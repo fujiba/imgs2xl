@@ -50,5 +50,5 @@ jobs:
     - name: save dist
       uses: actions/upload-artifact@v2
       with:
-        name: gui.dist.tgz
-        path: ./gui.dist.tgz
+        name: gui.app.tgz
+        path: ./gui.app.tgz
