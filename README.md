@@ -43,7 +43,7 @@ optional arguments:
 example
 
 ```bash
-imgs2xl imgsdir imglist.xlsx --size 240 --tags Model,LensModel,DateTimeOriginal
+imgs2xl imgsdir imglist.xlsx --size 240 --tags EXIF:Model,EXIF:LensModel,EXIF:DateTimeOriginal
 ```
 
 ### Input JSON
