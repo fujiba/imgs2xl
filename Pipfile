@@ -10,10 +10,12 @@ filetype = "*"
 defusedxml = "*"
 
 [dev-packages]
+nuitka = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.9"
 
 [scripts]
 imgs2xl = "python3 imgs2xl/cli.py"
 gimgs2xl = "python3 imgs2xl/gui.py"
+build = "python3 -m nuitka --standalone --enable-plugin=tk-inter --enable-plugin=numpy --follow-imports imgs2xl/gui.py"
