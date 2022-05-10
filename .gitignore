@@ -28,6 +28,7 @@ share/python-wheels/
 MANIFEST
 *.build/
 *.dist/
+*.app/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -124,7 +125,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-.dmypy.json
+.dmypy.app
 dmypy.json
 
 # Pyre type checker
