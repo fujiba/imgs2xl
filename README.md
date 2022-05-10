@@ -93,7 +93,7 @@ See following youtube contents for using gimgs2xl.
 
 # Requirements
 
-- Python >= 3.7
+- Python >= 3.9
   - openpyxl
   - Pillow
   - filetype
