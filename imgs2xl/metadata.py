@@ -169,12 +169,7 @@ def _normalise_exif_value(key, val):
     return value
 
 
-def get_metadata(path: str):
-    metadata = {}
-
-    pilImage = Image.open(path)
-    rawmeta = pilImage._getexif()
-
+def get_file_metadata(path: str, metadata):
     # Generic file informations.
     metadata["File:FileName"] = os.path.basename(path)
     metadata["File:Directory"] = os.path.dirname(path)
@@ -190,38 +185,49 @@ def get_metadata(path: str):
     metadata["File:FileType"] = kind.mime.rsplit("/", 1)[1]
     metadata["File:FileTypeExtension"] = kind.extension
     metadata["File:MIMEType"] = kind.mime
+
+def get_image_metadata(pilImage, metadata):
+
     metadata["File:ImageWidth"] = pilImage.width
     metadata["File:ImageHeight"] = pilImage.height
 
     # retrieve exif values
-    if rawmeta:
-        for key in rawmeta:
-            keyname = ExifTags.TAGS.get(key, str(key))
-            metadata[f"EXIF:{keyname}"] = _normalise_exif_value(keyname, rawmeta[key])
+    try:
+        rawmeta = pilImage._getexif()
+        if rawmeta:
+            for key in rawmeta:
+                keyname = ExifTags.TAGS.get(key, str(key))
+                metadata[f"EXIF:{keyname}"] = _normalise_exif_value(keyname, rawmeta[key])
+    except Exception as e:
+        pass
 
     # retrieve IPTC values
-    iptc = IptcImagePlugin.getiptcinfo(pilImage)
-    if iptc:
-        for key, val in iptc.items():
-            if key[0] == 2 and key[1] in _IIMP_PROPS:
-                if isinstance(val, list):
-                    metadata[f"IPTC:{_IIMP_PROPS[key[1]]}"] = ",".join(
-                        [x.decode() for x in val]
-                    )
-                else:
-                    metadata[f"IPTC:{_IIMP_PROPS[key[1]]}"] = val.decode()
+    try:
+        iptc = IptcImagePlugin.getiptcinfo(pilImage)
+        if iptc:
+            for key, val in iptc.items():
+                if key[0] == 2 and key[1] in _IIMP_PROPS:
+                    if isinstance(val, list):
+                        metadata[f"IPTC:{_IIMP_PROPS[key[1]]}"] = ",".join(
+                            [x.decode() for x in val]
+                        )
+                    else:
+                        metadata[f"IPTC:{_IIMP_PROPS[key[1]]}"] = val.decode()
+    except Exception as e:
+        pass
 
     # retrieve XMP values
-    xmp = pilImage.getxmp()
-    if (
-        "xmpmeta" in xmp
-        and "RDF" in xmp["xmpmeta"]
-        and "Description" in xmp["xmpmeta"]["RDF"]
-    ):
-        if isinstance(xmp["xmpmeta"]["RDF"]["Description"], dict):
-            _add_xmpvalues(metadata, xmp["xmpmeta"]["RDF"]["Description"])
-        elif isinstance(xmp["xmpmeta"]["RDF"]["Description"], list):
-            for sub in xmp["xmpmeta"]["RDF"]["Description"]:
-                _add_xmpvalues(metadata, sub)
-
-    return metadata
+    try:
+        xmp = pilImage.getxmp()
+        if (
+            "xmpmeta" in xmp
+            and "RDF" in xmp["xmpmeta"]
+            and "Description" in xmp["xmpmeta"]["RDF"]
+        ):
+            if isinstance(xmp["xmpmeta"]["RDF"]["Description"], dict):
+                _add_xmpvalues(metadata, xmp["xmpmeta"]["RDF"]["Description"])
+            elif isinstance(xmp["xmpmeta"]["RDF"]["Description"], list):
+                for sub in xmp["xmpmeta"]["RDF"]["Description"]:
+                    _add_xmpvalues(metadata, sub)
+    except Exception as e:
+        pass

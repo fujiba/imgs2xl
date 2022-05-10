@@ -8,11 +8,14 @@ import imghdr
 import tempfile
 import json
 import traceback
-from .metadata import get_metadata
-
 import openpyxl
+from logging import getLogger
 from openpyxl.styles import Alignment
 from PIL import Image
+from .metadata import get_file_metadata, get_image_metadata
+
+
+logger = getLogger(__name__)
 
 
 def output_json(
@@ -87,19 +90,34 @@ def _add_tags(ws, tags, exif: dict, col: int, row: int):
     offset = 0
     for tag in tags:
         cell = ws.cell(row=row, column=col + offset)
-        cell.value = str(exif.get(tag, ""))
-        cell.alignment = Alignment(wrapText=True, vertical="top")
+        try:
+            cell.value = str(exif.get(tag, ""))
+            cell.alignment = Alignment(wrapText=True, vertical="top")
+        except openpyxl.utils.exceptions.IllegalCharacterError as e:
+            logger.warn(f"IllegalCharacterError: tag={tag}, value='{str(exif.get(tag))}'")
         offset += 1
 
 
-def _retrieve_thumbs(imgpath: str, size: int, outdir: str):
-    pilImage = Image.open(imgpath)
-    pilImage.thumbnail((size, size))
+def _retrieve_image_data(imgpath: str, size: int, outdir: str):
 
-    path = os.path.join(outdir, os.path.basename(imgpath))
-    pilImage.save(path)
+    if imghdr.what(imgpath) == None:
+        return None, None
 
-    return path
+    try:
+        pilImage = Image.open(imgpath)
+        pilImage.thumbnail((size, size))
+        path = os.path.join(outdir, os.path.basename(imgpath))
+        pilImage.save(path)
+    except Exception as e:
+        logger.warn(f"failed to retrieve thumbsnail {str(e)}")
+        return None, None
+
+    metadata = {}
+
+    get_file_metadata(imgpath, metadata)
+    get_image_metadata(pilImage, metadata)
+
+    return path, metadata
 
 
 def run(
@@ -168,11 +186,12 @@ def run(
         for n, file in enumerate(files):
             if os.path.isdir(file):
                 continue
-            if imghdr.what(file) != None:
+
+            thumb, metadata = _retrieve_image_data(file, thumbssize, tmppath.name)
+
+            if thumb != None:
                 ws.cell(column=1, row=row).value = row - 1
                 ws.cell(column=1, row=row).alignment = Alignment(vertical="top")
-                thumb = _retrieve_thumbs(file, thumbssize, tmppath.name)
-                metadata = get_metadata(file)
                 width = _attach_image(ws, thumb, 2, row)
                 if width > max_width:
                     max_width = width
@@ -206,6 +225,6 @@ def run(
 
         wb.save(xlsxpath)
     except Exception as e:
-        sys.stderr.write(traceback.format_exc())
+        logger.error(traceback.format_exc())
     finally:
         tmppath.cleanup()
