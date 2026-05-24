@@ -1,19 +1,20 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import glob
+import json
 import os
 import sys
-import glob
 import tempfile
-import filetype
-import json
 import traceback
-import openpyxl
 from logging import getLogger
+
+import filetype
+import openpyxl
 from openpyxl.styles import Alignment
 from PIL import Image
-from .metadata import get_file_metadata, get_image_metadata
 
+from .metadata import get_file_metadata, get_image_metadata
 
 logger = getLogger(__name__)
 
@@ -94,15 +95,20 @@ def _add_tags(ws, tags, exif: dict, col: int, row: int):
         try:
             val = exif.get(tag)
             if val is None and tag.startswith("XMP-"):
-                tag_parts = tag.split(":", 1)
-                if len(tag_parts) == 2:
+                # 1. XMP- を XMP: に置換 (例: XMP-dc:Creator -> XMP:dc:Creator, XMP-Title -> XMP:Title)
+                fallback_tag = "XMP:" + tag[4:]
+                val = exif.get(fallback_tag)
+                
+                # 2. カスタム名前空間(fujiba:等)がPillowのパース時に欠落するケースへの対応
+                if val is None and ":" in tag[4:]:
+                    tag_parts = tag.split(":", 1)
                     val = exif.get("XMP:" + tag_parts[1])
             if val is None:
                 val = ""
             cell.value = str(val)
             cell.alignment = Alignment(wrapText=True, vertical="top")
         except openpyxl.utils.exceptions.IllegalCharacterError as e:
-            logger.warn(f"IllegalCharacterError: tag={tag}, value='{str(val)}'")
+            logger.warning(f"IllegalCharacterError: tag={tag}, value='{str(val)}'")
         offset += 1
 
 
@@ -117,7 +123,7 @@ def _retrieve_image_data(imgpath: str, size: int, outdir: str):
         path = os.path.join(outdir, os.path.basename(imgpath))
         pilImage.save(path)
     except Exception as e:
-        logger.warn(f"failed to retrieve thumbsnail {str(e)}")
+        logger.warning(f"failed to retrieve thumbsnail {str(e)}")
         return None, None
 
     metadata = {}
