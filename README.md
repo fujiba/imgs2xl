@@ -10,16 +10,20 @@ This tool reads image files in a specified directory and generates an Excel shee
 # Install
 
 ```bash
-pip install git+https://github.com/fujiba/imgs2xl
+# Using pip
+pip install imgs2xl
+
+# Using uv (Recommended)
+uv tool install imgs2xl
 ```
 
 # Usage
 
 ## CLI
 
-imgs2xl.py [-h] [--recursive] [--verbose] [--size SIZE] [--input-json INPUT_JSON]
-                  [--generate-skeleton GENERATE_SKELETON] [--tags TAGS]
-                  [inputdir] [output]
+imgs2xl [-h] [--recursive] [--verbose] [--size SIZE] [--input-json INPUT_JSON]
+               [--generate-skeleton GENERATE_SKELETON] [--tags TAGS]
+               [inputdir] [output]
 
 positional arguments
 

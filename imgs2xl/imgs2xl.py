@@ -4,8 +4,8 @@
 import os
 import sys
 import glob
-import imghdr
 import tempfile
+import filetype
 import json
 import traceback
 import openpyxl
@@ -89,18 +89,26 @@ def _add_tags(ws, tags, exif: dict, col: int, row: int):
 
     offset = 0
     for tag in tags:
+        tag = tag.strip()
         cell = ws.cell(row=row, column=col + offset)
         try:
-            cell.value = str(exif.get(tag, ""))
+            val = exif.get(tag)
+            if val is None and tag.startswith("XMP-"):
+                tag_parts = tag.split(":", 1)
+                if len(tag_parts) == 2:
+                    val = exif.get("XMP:" + tag_parts[1])
+            if val is None:
+                val = ""
+            cell.value = str(val)
             cell.alignment = Alignment(wrapText=True, vertical="top")
         except openpyxl.utils.exceptions.IllegalCharacterError as e:
-            logger.warn(f"IllegalCharacterError: tag={tag}, value='{str(exif.get(tag))}'")
+            logger.warn(f"IllegalCharacterError: tag={tag}, value='{str(val)}'")
         offset += 1
 
 
 def _retrieve_image_data(imgpath: str, size: int, outdir: str):
 
-    if imghdr.what(imgpath) == None:
+    if not filetype.is_image(imgpath):
         return None, None
 
     try:
