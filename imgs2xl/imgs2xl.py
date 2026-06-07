@@ -83,18 +83,21 @@ def _attach_image(ws, img: str, col: int, row: int, thumbssize: int):
     from openpyxl.drawing.xdr import XDRPositiveSize2D
     from openpyxl.utils.units import pixels_to_EMU
 
-    pilImage = Image.open(img)
+    with Image.open(img) as pilImage:
+        width = pilImage.width
+        height = pilImage.height
+
     wsImg = openpyxl.drawing.image.Image(img)
     
-    col_offset = int((thumbssize - pilImage.width) / 2)
-    row_offset = int((thumbssize - pilImage.height) / 2)
+    col_offset = int((thumbssize - width) / 2)
+    row_offset = int((thumbssize - height) / 2)
     
     marker = AnchorMarker(col=col-1, colOff=pixels_to_EMU(col_offset), row=row-1, rowOff=pixels_to_EMU(row_offset))
-    ext = XDRPositiveSize2D(cx=pixels_to_EMU(pilImage.width), cy=pixels_to_EMU(pilImage.height))
+    ext = XDRPositiveSize2D(cx=pixels_to_EMU(width), cy=pixels_to_EMU(height))
     wsImg.anchor = OneCellAnchor(_from=marker, ext=ext)
     
     ws.add_image(wsImg)
-    return pilImage.width
+    return width
 
 
 def _add_tags(ws, tags, exif: dict, col: int, row: int):
