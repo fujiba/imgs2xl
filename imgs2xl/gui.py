@@ -250,9 +250,10 @@ class Application(tk.Frame):
         import filetype
         if not recursive:
             try:
-                for entry in os.scandir(path):
-                    if entry.is_file() and filetype.is_image(entry.path):
-                        return entry.path
+                with os.scandir(path) as entries:
+                    for entry in entries:
+                        if entry.is_file() and filetype.is_image(entry.path):
+                            return entry.path
             except Exception:
                 pass
         else:
@@ -280,10 +281,10 @@ class Application(tk.Frame):
         from PIL import Image
         import imgs2xl.metadata
         try:
-            pilImage = Image.open(first_image)
-            metadata = {}
-            imgs2xl.metadata.get_file_metadata(first_image, metadata)
-            imgs2xl.metadata.get_image_metadata(pilImage, metadata)
+            with Image.open(first_image) as pilImage:
+                metadata = {}
+                imgs2xl.metadata.get_file_metadata(first_image, metadata)
+                imgs2xl.metadata.get_image_metadata(pilImage, metadata)
             
             new_tags = list(metadata.keys())
             avail_tags = list(self.available_tags_list.get(0, tk.END))
