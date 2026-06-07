@@ -26,6 +26,7 @@ def output_json(
     recursive: bool,
     thumbssize: int,
     tags: list[str],
+    fullpath: bool = False,
 ):
     """
     Generate a JSON file for CLI input arguments.
@@ -44,6 +45,8 @@ def output_json(
         Recursively search for files.
     tags: list[str]
         Append exif tags.  The tag names may include group names, asusual in the format `<group>:<tag>`.
+    fullpath: bool
+        Print full path for Filename column
     """
 
     with open(jsonpath, mode="w", encoding="utf-8") as file:
@@ -54,6 +57,7 @@ def output_json(
                 "recursive": recursive,
                 "size": thumbssize,
                 "tags": tags,
+                "fullpath": fullpath,
             },
             file,
             ensure_ascii=False,
@@ -74,14 +78,26 @@ def input_json(jsonpath: str):
         return json.load(file)
 
 
-def _attach_image(ws, img: str, col: int, row: int):
-    pilImage = Image.open(img)
-    ws.row_dimensions[row].height = pilImage.height * 0.75
+def _attach_image(ws, img: str, col: int, row: int, thumbssize: int):
+    from openpyxl.drawing.spreadsheet_drawing import OneCellAnchor, AnchorMarker
+    from openpyxl.drawing.xdr import XDRPositiveSize2D
+    from openpyxl.utils.units import pixels_to_EMU
+
+    with Image.open(img) as pilImage:
+        width = pilImage.width
+        height = pilImage.height
+
     wsImg = openpyxl.drawing.image.Image(img)
-    cell_address = ws.cell(row=row, column=col).coordinate
-    wsImg.anchor = cell_address
+    
+    col_offset = int((thumbssize - width) / 2)
+    row_offset = int((thumbssize - height) / 2)
+    
+    marker = AnchorMarker(col=col-1, colOff=pixels_to_EMU(col_offset), row=row-1, rowOff=pixels_to_EMU(row_offset))
+    ext = XDRPositiveSize2D(cx=pixels_to_EMU(width), cy=pixels_to_EMU(height))
+    wsImg.anchor = OneCellAnchor(_from=marker, ext=ext)
+    
     ws.add_image(wsImg)
-    return pilImage.width
+    return width
 
 
 def _add_tags(ws, tags, exif: dict, col: int, row: int):
@@ -141,6 +157,7 @@ def run(
     tags: list[str],
     recursive: bool,
     callback=None,
+    fullpath: bool = False,
 ):
     """
     Generate an Excel sheet with thumbnails from an image files.
@@ -165,6 +182,8 @@ def run(
             total: total files num.
             n: current file num.
         ```
+    fullpath: bool
+        Print full path for Filename column
     """
     imgspath = os.path.expanduser(imgspath)
     imgspath = os.path.expandvars(imgspath)
@@ -206,10 +225,14 @@ def run(
             if thumb != None:
                 ws.cell(column=1, row=row).value = row - 1
                 ws.cell(column=1, row=row).alignment = Alignment(vertical="top")
-                width = _attach_image(ws, thumb, 2, row)
+                ws.row_dimensions[row].height = min(thumbssize * 0.75, 409.5)
+                width = _attach_image(ws, thumb, 2, row, thumbssize)
                 if width > max_width:
                     max_width = width
-                fn = os.path.basename(file)
+                if fullpath:
+                    fn = os.path.abspath(file)
+                else:
+                    fn = os.path.basename(file)
                 cell = ws.cell(column=3, row=row)
                 cell.value = fn
                 cell.alignment = Alignment(wrapText=True, vertical="top")
@@ -224,7 +247,7 @@ def run(
             if callback:
                 callback(file, filenum, n + 1)
 
-        ws.column_dimensions["B"].width = max_width * 0.13
+        ws.column_dimensions["B"].width = thumbssize * 0.13
         ws.column_dimensions["C"].width = (max_filename + 2) * 1.2
 
         for n in range(len(tags) + 1):

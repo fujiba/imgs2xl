@@ -80,7 +80,7 @@ class Application(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
 
-        master.minsize(400, 200)
+        master.minsize(800, 400)
         master.title("gimgs2xl")
 
         menu = self.create_menu(master)
@@ -116,6 +116,7 @@ class Application(tk.Frame):
         self.thumbssize_var = tk.IntVar(value=320)
         self.othertags_var = tk.StringVar()
         self.recursive_var = tk.BooleanVar()
+        self.fullpath_var = tk.BooleanVar()
 
         row = 0
         imgspath_label = tk.Label(parent, text="Images path:")
@@ -132,6 +133,12 @@ class Application(tk.Frame):
             parent, variable=self.recursive_var, text="Recursive"
         )
         self.recursive_chkbox.grid(row=row, column=1, sticky=tk.W)
+
+        row += 1
+        self.fullpath_chkbox = tk.Checkbutton(
+            parent, variable=self.fullpath_var, text="Fullpath"
+        )
+        self.fullpath_chkbox.grid(row=row, column=1, sticky=tk.W)
 
         row += 1
         xlsxpath_label = tk.Label(parent, text="Excel book path:")
@@ -156,20 +163,51 @@ class Application(tk.Frame):
         thumbssizesuffix_label.grid(row=row, column=2, sticky=tk.W)
 
         row += 1
-        tagslist_label = tk.Label(parent, text="Tags:")
-        tagslist_label.grid(row=row, column=0, sticky=tk.NE)
-        self.tags_list = tk.Listbox(
-            parent,
+        tagslist_frame_left = tk.Frame(parent)
+        tagslist_frame_left.grid(row=row, column=0, sticky=tk.NE)
+        tagslist_label = tk.Label(tagslist_frame_left, text="Available Tags:")
+        tagslist_label.pack(side=tk.TOP, anchor=tk.E)
+        scan_tags_button = tk.Button(tagslist_frame_left, text="Scan Tags", command=self.update_tags_from_image)
+        scan_tags_button.pack(side=tk.TOP, anchor=tk.E, pady=5)
+        
+        lists_frame = tk.Frame(parent)
+        lists_frame.grid(row=row, column=1, columnspan=2, sticky=tk.NE + tk.NW + tk.S + tk.E)
+        
+        left_frame = tk.Frame(lists_frame)
+        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.available_tags_list = tk.Listbox(
+            left_frame,
             listvariable=tk.StringVar(value=Application._TAGNAMES),
             selectmode="multiple",
-            width=0,
+            width=30,
+            exportselection=False
         )
-        self.tags_list.grid(row=row, column=1, sticky=tk.NE + tk.NW + tk.S)
-        scrollbar = tk.Scrollbar(
-            parent, orient=tk.VERTICAL, command=self.tags_list.yview
+        self.available_tags_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar_avail = tk.Scrollbar(left_frame, orient=tk.VERTICAL, command=self.available_tags_list.yview)
+        self.available_tags_list["yscrollcommand"] = scrollbar_avail.set
+        scrollbar_avail.pack(side=tk.LEFT, fill=tk.Y)
+        self.available_tags_list.bind("<Double-1>", lambda e: self.add_selected_tags())
+
+        btn_frame = tk.Frame(lists_frame, padx=10)
+        btn_frame.pack(side=tk.LEFT, fill=tk.Y)
+        btn_add = tk.Button(btn_frame, text="Add ->", command=self.add_selected_tags)
+        btn_add.pack(side=tk.TOP, pady=(50, 5))
+        btn_remove = tk.Button(btn_frame, text="<- Remove", command=self.remove_selected_tags)
+        btn_remove.pack(side=tk.TOP, pady=5)
+
+        right_frame = tk.Frame(lists_frame)
+        right_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.selected_tags_list = tk.Listbox(
+            right_frame,
+            selectmode="multiple",
+            width=30,
+            exportselection=False
         )
-        self.tags_list["yscrollcommand"] = scrollbar.set
-        scrollbar.grid(row=row, column=2, sticky=(tk.NW + tk.S))
+        self.selected_tags_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar_sel = tk.Scrollbar(right_frame, orient=tk.VERTICAL, command=self.selected_tags_list.yview)
+        self.selected_tags_list["yscrollcommand"] = scrollbar_sel.set
+        scrollbar_sel.pack(side=tk.LEFT, fill=tk.Y)
+        self.selected_tags_list.bind("<Double-1>", lambda e: self.remove_selected_tags())
 
         row += 1
         othertags_label = tk.Label(parent, text="Other tags\n(Comma separated):")
@@ -186,6 +224,78 @@ class Application(tk.Frame):
         self.close_button = tk.Button(parent, text="Exit", command=self.on_close)
         self.close_button.grid(row=row, column=2)
 
+    def add_selected_tags(self):
+        sel_indices = self.available_tags_list.curselection()
+        if not sel_indices:
+            return
+        
+        tags_to_add = [self.available_tags_list.get(i) for i in sel_indices]
+        current_selected = list(self.selected_tags_list.get(0, tk.END))
+        
+        for tag in tags_to_add:
+            if tag not in current_selected:
+                self.selected_tags_list.insert(tk.END, tag)
+                
+        self.available_tags_list.selection_clear(0, tk.END)
+
+    def remove_selected_tags(self):
+        sel_indices = self.selected_tags_list.curselection()
+        if not sel_indices:
+            return
+            
+        for i in reversed(sel_indices):
+            self.selected_tags_list.delete(i)
+
+    def _find_first_image(self, path, recursive):
+        import filetype
+        if not recursive:
+            try:
+                with os.scandir(path) as entries:
+                    for entry in entries:
+                        if entry.is_file() and filetype.is_image(entry.path):
+                            return entry.path
+            except Exception:
+                pass
+        else:
+            try:
+                for root, dirs, files in os.walk(path):
+                    for file in files:
+                        p = os.path.join(root, file)
+                        if filetype.is_image(p):
+                            return p
+            except Exception:
+                pass
+        return None
+
+    def update_tags_from_image(self, *args):
+        path = self.imgspath_var.get()
+        if not path or not os.path.isdir(path):
+            tk.messagebox.showerror("imgs2xl", "Images path is invalid or empty!", parent=self.master)
+            return
+
+        first_image = self._find_first_image(path, self.recursive_var.get())
+        if not first_image:
+            tk.messagebox.showinfo("imgs2xl", "No images found in the specified path.", parent=self.master)
+            return
+
+        from PIL import Image
+        import imgs2xl.metadata
+        try:
+            with Image.open(first_image) as pilImage:
+                metadata = {}
+                imgs2xl.metadata.get_file_metadata(first_image, metadata)
+                imgs2xl.metadata.get_image_metadata(pilImage, metadata)
+            
+            new_tags = list(metadata.keys())
+            avail_tags = list(self.available_tags_list.get(0, tk.END))
+            sel_tags = list(self.selected_tags_list.get(0, tk.END))
+            
+            for tag in new_tags:
+                if tag not in avail_tags and tag not in sel_tags:
+                    self.available_tags_list.insert(tk.END, tag)
+        except Exception:
+            pass
+
     def on_load_param(self):
         path = filedialog.askopenfilename(
             parent=self.master,
@@ -201,12 +311,15 @@ class Application(tk.Frame):
             self.imgspath_var.set(_["inputdir"])
             self.xlsxpath_var.set(_["output"])
             self.recursive_var.set(_["recursive"])
+            self.fullpath_var.set(_.get("fullpath", False))
             self.thumbssize_var.set(_["size"])
+            
+            self.selected_tags_list.delete(0, tk.END)
             othertags = []
+            avail_tags = list(self.available_tags_list.get(0, tk.END))
             for tag in _["tags"]:
-                index = self._TAGNAMES.index(tag) if tag in self._TAGNAMES else -1
-                if index >= 0:
-                    self.tags_list.select_set(index)
+                if tag in avail_tags:
+                    self.selected_tags_list.insert(tk.END, tag)
                 else:
                     othertags.append(tag)
 
@@ -234,6 +347,7 @@ class Application(tk.Frame):
             self.recursive_var.get(),
             self.thumbssize_var.get(),
             self.make_tags_string(),
+            self.fullpath_var.get(),
         )
 
     def on_xlsxpath_browse(self):
@@ -308,10 +422,7 @@ class Application(tk.Frame):
         self.progress_filename_var.set(os.path.basename(filename))
 
     def make_tags_string(self):
-        tags = []
-        selected = self.tags_list.curselection()
-        for index in selected:
-            tags.append(Application._TAGNAMES[index])
+        tags = list(self.selected_tags_list.get(0, tk.END))
 
         if len(self.othertags_var.get()) > 0:
             tags += self.othertags_var.get().split(",")
@@ -329,6 +440,7 @@ class Application(tk.Frame):
                 tags=tags,
                 recursive=self.recursive_var.get(),
                 callback=self.progress_callback,
+                fullpath=self.fullpath_var.get(),
             )
 
     def on_run(self):

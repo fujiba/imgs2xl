@@ -207,12 +207,20 @@ def get_image_metadata(pilImage, metadata):
         if iptc:
             for key, val in iptc.items():
                 if key[0] == 2 and key[1] in _IIMP_PROPS:
+                    prop_name = _IIMP_PROPS[key[1]]
                     if isinstance(val, list):
-                        metadata[f"IPTC:{_IIMP_PROPS[key[1]]}"] = ",".join(
-                            [x.decode() for x in val]
-                        )
+                        v = ",".join([x.decode() for x in val])
                     else:
-                        metadata[f"IPTC:{_IIMP_PROPS[key[1]]}"] = val.decode()
+                        v = val.decode()
+
+                    if prop_name == "DateCreated" and len(v) == 8 and v.isdigit():
+                        v = f"{v[0:4]}/{v[4:6]}/{v[6:8]}"
+                    elif prop_name == "TimeCreated":
+                        m = re.match(r"^(\d{2})(\d{2})(\d{2})", v)
+                        if m:
+                            v = f"{m.group(1)}:{m.group(2)}:{m.group(3)}"
+
+                    metadata[f"IPTC:{prop_name}"] = v
     except Exception as e:
         pass
 
