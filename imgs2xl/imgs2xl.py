@@ -222,7 +222,7 @@ def run(
             if thumb != None:
                 ws.cell(column=1, row=row).value = row - 1
                 ws.cell(column=1, row=row).alignment = Alignment(vertical="top")
-                ws.row_dimensions[row].height = thumbssize * 0.75
+                ws.row_dimensions[row].height = min(thumbssize * 0.75, 409.5)
                 width = _attach_image(ws, thumb, 2, row, thumbssize)
                 if width > max_width:
                     max_width = width
