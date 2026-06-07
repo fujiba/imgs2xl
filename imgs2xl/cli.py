@@ -36,10 +36,14 @@ def main():
         help="Append exif tags. If specify the multiple tags, use commna for separate.The tag names may include group names, asusual in the format `<group>:<tag>`.",
     )
 
+    parser.add_argument(
+        "--fullpath", action="store_true", help="Print full path for Filename column"
+    )
+
     args = parser.parse_args()
 
     if args.generate_skeleton is not None:
-        imgs2xl.output_json(args.generate_skeleton, "", "", False, 320, [])
+        imgs2xl.output_json(args.generate_skeleton, "", "", False, 320, [], False)
         exit(0)
 
     if args.input_json is not None:
@@ -49,10 +53,12 @@ def main():
         recursive = _["recursive"]
         thumbssize = _["size"]
         tags = _["tags"]
+        fullpath = _.get("fullpath", False)
     else:
         recursive = args.recursive
         thumbssize = args.size
         tags = args.tags
+        fullpath = args.fullpath
         tags = []
         if args.tags is not None:
             tags = args.tags.split(",")
@@ -73,7 +79,7 @@ def main():
         exit(1)
 
     callback = verbose_callback if args.verbose else None
-    imgs2xl.run(imgspath, xlsxpath, thumbssize, tags, recursive, callback)
+    imgs2xl.run(imgspath, xlsxpath, thumbssize, tags, recursive, callback, fullpath)
 
 
 if __name__ == "__main__":

@@ -23,6 +23,7 @@ uv tool install imgs2xl
 
 imgs2xl [-h] [--recursive] [--verbose] [--size SIZE] [--input-json INPUT_JSON]
                [--generate-skeleton GENERATE_SKELETON] [--tags TAGS]
+               [--fullpath]
                [inputdir] [output]
 
 positional arguments
@@ -42,6 +43,7 @@ optional arguments:
 | --input-json INPUT_JSON               | Use parameters json file.                 |
 | --generate-skeleton GENERATE_SKELETON | Create parameters skeleton json file.     |
 | --recursive                           | Recursively search for files.             |
+| --fullpath                            | Print full path for Filename column.      |
 | --verbose                             | Verbose mode(default False)               |
 
 example
@@ -59,6 +61,7 @@ The imgs2xl is using parameters as JSON file. JSON file sample is following.
   "inputdir": "/Users/fujiba/tmp/2022.04.25",
   "output": "/Users/fujiba/tmp/hoge.xlsx",
   "recursive": false,
+  "fullpath": false,
   "size": 320,
   "tags": ["EXIF:Make", "EXIF:Model"]
 }
@@ -78,6 +81,7 @@ gimgs2xl
 |------------------|----------------------------------------------------------------------|
 | Images path      | Input directory that contain image files.                            |
 | Recursive        | Recursively search for files.                                        |
+| Fullpath         | Print full path for Filename column.                                 |
 | Excel book path  | Output Excel file name.                                              |
 | Thumbsnail size  | Thumnbsnails size.                                                   |
 | Tags             | Famous tags are can select multiple.                                 |
