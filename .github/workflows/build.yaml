@@ -2,42 +2,120 @@ name: Build binary
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - "v*"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            nuitka_extra: "--macos-create-app-bundle --macos-app-icon=imgs2xl/resources/icon.png"
+          - os: windows-latest
+            nuitka_extra: "--windows-console-mode=disable --windows-icon-from-ico=icon.ico"
 
-    runs-on:  macOS-latest
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.9"
-    - name: Set Tcl/Tk path
-      run: |
-          version=$(brew info tcl-tk --json | jq -r '.[].installed[].version')
-          echo "PATH=/usr/local/Cellar/tcl-tk/$version/bin:$PATH" > $GITHUB_ENV
-          echo "LDFLAGS=-L/usr/local/Cellar/tcl-tk/$version/lib" >> $GITHUB_ENV
-          echo "CPPFLAGS=-I/usr/local/Cellar/tcl-tk/$version/include" >> $GITHUB_ENV
-          echo "TCL_LIBRARY=/usr/local/Cellar/tcl-tk/$version" >> $GITHUB_ENV
-          echo "TK_LIBRARY=/usr/local/Cellar/tcl-tk/$version" >> $GITHUB_ENV
-    - name: Install uv
-      uses: astral-sh/setup-uv@v5
-    
-    - name: install packages
-      run: uv sync --all-extras
-        
-    - name: Build with nuitka
-      run: |
-        uv run nuitka --assume-yes-for-downloads --standalone --enable-plugin=tk-inter --enable-plugin=numpy --macos-create-app-bundle imgs2xl/gui.py
-        tar cvfz gui.app.tgz gui.app/*
-        
-    - name: save dist
-      uses: actions/upload-artifact@v2
-      with:
-        name: gui.app.tgz
-        path: ./gui.app.tgz
+      - uses: actions/checkout@v6
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      # macOS では Homebrew の tcl-tk パスを明示的に設定する必要がある
+      # brew --prefix を使うことで Intel/ARM 両方のランナーに対応
+      - name: Set Tcl/Tk path (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          TCL_TK_PREFIX=$(brew --prefix tcl-tk)
+          echo "${TCL_TK_PREFIX}/bin" >> $GITHUB_PATH
+          echo "LDFLAGS=-L${TCL_TK_PREFIX}/lib" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I${TCL_TK_PREFIX}/include" >> $GITHUB_ENV
+          echo "TCL_LIBRARY=${TCL_TK_PREFIX}" >> $GITHUB_ENV
+          echo "TK_LIBRARY=${TCL_TK_PREFIX}" >> $GITHUB_ENV
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install packages
+        run: uv sync --all-extras
+
+      # Windows 用に PNG → ICO 変換（Pillow は依存に含まれている）
+      - name: Convert icon to ICO (Windows)
+        if: runner.os == 'Windows'
+        run: >
+          uv run python -c
+          "from PIL import Image;
+          img = Image.open('imgs2xl/resources/icon.png');
+          img.save('icon.ico', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])"
+
+      - name: Build with Nuitka
+        run: >
+          uv run nuitka
+          --assume-yes-for-downloads
+          --standalone
+          --output-filename=gimgs2xl
+          --enable-plugin=tk-inter
+          --enable-plugin=numpy
+          ${{ matrix.nuitka_extra }}
+          imgs2xl/gui.py
+
+      # Nuitka はソースファイル名でディレクトリを作るのでリネーム
+      - name: Rename output (macOS)
+        if: runner.os == 'macOS'
+        run: mv gui.app gimgs2xl.app
+
+      - name: Rename output (Windows)
+        if: runner.os == 'Windows'
+        run: Rename-Item gui.dist gimgs2xl
+
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: tar cvfz gimgs2xl.app.tgz gimgs2xl.app/*
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path gimgs2xl -DestinationPath gimgs2xl.zip
+
+      - name: Upload artifact (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v7
+        with:
+          name: imgs2xl-macOS
+          path: ./gimgs2xl.app.tgz
+
+      - name: Upload artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: imgs2xl-Windows
+          path: ./gimgs2xl.zip
+
+  # タグ push 時のみ、ビルド成果物を GitHub Release に添付
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --repo ${{ github.repository }} \
+            --title "${{ github.ref_name }}" \
+            --generate-notes \
+            imgs2xl-macOS/gimgs2xl.app.tgz \
+            imgs2xl-Windows/gimgs2xl.zip

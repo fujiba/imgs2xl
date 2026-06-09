@@ -17,6 +17,19 @@ pip install imgs2xl
 uv tool install imgs2xl
 ```
 
+## Standalone binary
+
+Pre-built standalone binaries for macOS and Windows are available on the [Releases](https://github.com/fujiba/imgs2xl/releases) page.
+
+> **Note (macOS):** Since pre-built binaries on macOS are subject to the quarantine attribute, you need to perform one of the following actions before launching the app for the first time:
+>
+> **Method 1:** Right-click the app in Finder -> select "Open" -> click "Open" in the confirmation dialog.
+>
+> **Method 2:** Remove the quarantine attribute via Terminal:
+> ```bash
+> xattr -cr gimgs2xl.app
+> ```
+
 # Usage
 
 ## CLI
@@ -101,7 +114,7 @@ See following youtube contents for using gimgs2xl.
 
 # Requirements
 
-- Python >= 3.9
+- Python >= 3.11
   - openpyxl
   - Pillow
   - filetype

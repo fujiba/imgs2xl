@@ -459,7 +459,7 @@ class Application(tk.Frame):
 
     def on_close(self):
         if tk.messagebox.askyesno("imgs2xl", "Do you want exit?", parent=self.master):
-            quit()
+            self.master.destroy()
 
 
 def main():

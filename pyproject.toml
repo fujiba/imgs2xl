@@ -5,7 +5,7 @@ description = "Output an Excel sheet with thumbnails from an image files."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [{ name = "T.Fujiba" }]
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -37,4 +37,5 @@ path = "imgs2xl/__init__.py"
 [dependency-groups]
 dev = [
     "nuitka>=2.3",
+    "imageio",
 ]
