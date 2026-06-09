@@ -58,7 +58,7 @@ jobs:
 
       - name: Build with Nuitka
         run: >
-          uv run --with imageio nuitka
+          uv run nuitka
           --assume-yes-for-downloads
           --standalone
           --output-filename=gimgs2xl

@@ -37,4 +37,5 @@ path = "imgs2xl/__init__.py"
 [dependency-groups]
 dev = [
     "nuitka>=2.3",
+    "imageio",
 ]
