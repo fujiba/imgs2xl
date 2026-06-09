@@ -2,9 +2,12 @@ name: Build binary
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - "v*"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -12,72 +15,107 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            nuitka_extra: "--macos-create-app-bundle"
+            nuitka_extra: "--macos-create-app-bundle --macos-app-icon=imgs2xl/resources/icon.png"
           - os: windows-latest
-            nuitka_extra: "--windows-console-mode=disable"
+            nuitka_extra: "--windows-console-mode=disable --windows-icon-from-ico=icon.ico"
 
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.12"
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
 
-    # macOS では Homebrew の tcl-tk パスを明示的に設定する必要がある
-    # brew --prefix を使うことで Intel/ARM 両方のランナーに対応
-    - name: Set Tcl/Tk path (macOS)
-      if: runner.os == 'macOS'
-      run: |
-        TCL_TK_PREFIX=$(brew --prefix tcl-tk)
-        echo "${TCL_TK_PREFIX}/bin" >> $GITHUB_PATH
-        echo "LDFLAGS=-L${TCL_TK_PREFIX}/lib" >> $GITHUB_ENV
-        echo "CPPFLAGS=-I${TCL_TK_PREFIX}/include" >> $GITHUB_ENV
-        echo "TCL_LIBRARY=${TCL_TK_PREFIX}" >> $GITHUB_ENV
-        echo "TK_LIBRARY=${TCL_TK_PREFIX}" >> $GITHUB_ENV
+      # macOS では Homebrew の tcl-tk パスを明示的に設定する必要がある
+      # brew --prefix を使うことで Intel/ARM 両方のランナーに対応
+      - name: Set Tcl/Tk path (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          TCL_TK_PREFIX=$(brew --prefix tcl-tk)
+          echo "${TCL_TK_PREFIX}/bin" >> $GITHUB_PATH
+          echo "LDFLAGS=-L${TCL_TK_PREFIX}/lib" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I${TCL_TK_PREFIX}/include" >> $GITHUB_ENV
+          echo "TCL_LIBRARY=${TCL_TK_PREFIX}" >> $GITHUB_ENV
+          echo "TK_LIBRARY=${TCL_TK_PREFIX}" >> $GITHUB_ENV
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
 
-    - name: Install packages
-      run: uv sync --all-extras
+      - name: Install packages
+        run: uv sync --all-extras
 
-    - name: Build with Nuitka
-      run: >
-        uv run nuitka
-        --assume-yes-for-downloads
-        --standalone
-        --enable-plugin=tk-inter
-        --enable-plugin=numpy
-        ${{ matrix.nuitka_extra }}
-        imgs2xl/gui.py
+      # Windows 用に PNG → ICO 変換（Pillow は依存に含まれている）
+      - name: Convert icon to ICO (Windows)
+        if: runner.os == 'Windows'
+        run: >
+          uv run python -c
+          "from PIL import Image;
+          img = Image.open('imgs2xl/resources/icon.png');
+          img.save('icon.ico', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])"
 
-    # Gatekeeper の「マルウェアが含まれている可能性」警告を軽減するためアドホック署名
-    # 完全に警告を消すには Apple Developer ID での署名+公証が必要
-    - name: Codesign (macOS)
-      if: runner.os == 'macOS'
-      run: codesign --force --deep --sign - gui.app
+      - name: Build with Nuitka
+        run: >
+          uv run nuitka
+          --assume-yes-for-downloads
+          --standalone
+          --output-filename=gimgs2xl
+          --enable-plugin=tk-inter
+          --enable-plugin=numpy
+          ${{ matrix.nuitka_extra }}
+          imgs2xl/gui.py
 
-    - name: Package (macOS)
-      if: runner.os == 'macOS'
-      run: tar cvfz gui.app.tgz gui.app/*
+      # Nuitka はソースファイル名でディレクトリを作るのでリネーム
+      - name: Rename output (macOS)
+        if: runner.os == 'macOS'
+        run: mv gui.app gimgs2xl.app
 
-    - name: Package (Windows)
-      if: runner.os == 'Windows'
-      run: Compress-Archive -Path gui.dist -DestinationPath gui.dist.zip
+      - name: Rename output (Windows)
+        if: runner.os == 'Windows'
+        run: Rename-Item gui.dist gimgs2xl
 
-    - name: Upload artifact (macOS)
-      if: runner.os == 'macOS'
-      uses: actions/upload-artifact@v4
-      with:
-        name: imgs2xl-macOS
-        path: ./gui.app.tgz
 
-    - name: Upload artifact (Windows)
-      if: runner.os == 'Windows'
-      uses: actions/upload-artifact@v4
-      with:
-        name: imgs2xl-Windows
-        path: ./gui.dist.zip
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: tar cvfz gimgs2xl.app.tgz gimgs2xl.app/*
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path gimgs2xl -DestinationPath gimgs2xl.zip
+
+      - name: Upload artifact (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v7
+        with:
+          name: imgs2xl-macOS
+          path: ./gimgs2xl.app.tgz
+
+      - name: Upload artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: imgs2xl-Windows
+          path: ./gimgs2xl.zip
+
+  # タグ push 時のみ、ビルド成果物を GitHub Release に添付
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --repo ${{ github.repository }} \
+            --title "${{ github.ref_name }}" \
+            --generate-notes \
+            imgs2xl-macOS/gimgs2xl.app.tgz \
+            imgs2xl-Windows/gimgs2xl.zip
