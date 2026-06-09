@@ -54,6 +54,12 @@ jobs:
         ${{ matrix.nuitka_extra }}
         imgs2xl/gui.py
 
+    # Gatekeeper の「マルウェアが含まれている可能性」警告を軽減するためアドホック署名
+    # 完全に警告を消すには Apple Developer ID での署名+公証が必要
+    - name: Codesign (macOS)
+      if: runner.os == 'macOS'
+      run: codesign --force --deep --sign - gui.app
+
     - name: Package (macOS)
       if: runner.os == 'macOS'
       run: tar cvfz gui.app.tgz gui.app/*
